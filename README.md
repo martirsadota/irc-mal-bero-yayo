@@ -20,6 +20,7 @@ IRC infobot that uses MyAnimeList info
     ...
     }
     ```
+    
 ## In the pipeline
   * `.lw` (User's last watched anime)
   * `.mal -um <username>` (Display manga stats instead of anime stats)
