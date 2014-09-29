@@ -83,7 +83,7 @@ use Time::Seconds;
  # CTCP VERSION reply string
  my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.9.14";
  # QUIT message
- my $quitmsg = "Wait, did I just hear a 100-yen coin fall?";
+ my $quitmsg = "";
  
 # Admin & HL Options
  # Hosts of bot admins
@@ -713,6 +713,7 @@ sub Ayesha {
      
      # grab some extra data
      my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rwe&u=$ct")->{content};
+	 print $recent,"\n" if $test;
      # GAWD I HATE DOING THIS
      # XML MODULE Y U NO WERK
      if ($recent =~ /
@@ -836,7 +837,7 @@ sub Ayesha {
     } else {
      $data->{jp_name} = (!defined($data->{jp_name})) ? $sep : "($data->{jp_name}) $sep";
 	 # TODO: Fix "Eucliwood Overflow" issue (too many seiyuu)
-     $data->{seiyuu} = (!defined($data->{seiyuu})) ? '' : "\x02Voiced by\x02 ".join(', ',@{$data->{seiyuu}})." $sep";
+     $data->{seiyuu} = (!defined($data->{seiyuu})) ? '' : " \x02Voiced by\x02 ".join(', ',@{$data->{seiyuu}})." $sep";
      # clean up the info
      $data->{info} = &cleanup($data->{info});
     
@@ -879,9 +880,9 @@ sub Ayesha {
       }
      # format
       $data = {
-          info_line_1 => "$sep [Character] \x02$data->{name}\x02 $data->{jp_name} $data->{seiyuu} $data->{shows} $sep",
+          info_line_1 => "$sep [Character] \x02$data->{name}\x02 $data->{jp_name}$data->{seiyuu} $data->{shows} $sep",
           info_line_2 => "$sep \x02Quick Info\x02 $data->{info} $sep \x02MAL Page Link\x02 $data->{url} $sep",
-		  parse_line  => "$mal $sep [Character] \x02$data->{name}\x02 $data->{jp_name} $data->{seiyuu} $data->{shows} $sep"
+		  parse_line  => "$mal $sep [Character] \x02$data->{name}\x02 $data->{jp_name}$data->{seiyuu} $data->{shows} $sep"
         };
     }
     return $data;
@@ -1168,12 +1169,18 @@ $mess = [];
   
   if ($blah =~ m{
                 \s*<div.class..normal_header..style="height:.15px;">.*?<span.style="font-weight:.normal;"><small>\((.*?)\)</small></span></div>
+               }six) {
+                 $mess->{jp_name} = $1;
+                }
+				
+  if ($blah =~ m{
+                \s*<div.class..normal_header..style="height:.15px;">.*?</div>
                 (.*?)
                  <div.class="normal_header">Voice.Actors</div>
                }six) {
-                 $mess->{jp_name} = $1;
-                 $mess->{info} = cleanup($2);
+                 $mess->{info} = cleanup($1);
                 }
+				
   my $ind = 0;
   while ($blah =~ m{
                    \s*<table.border.*?>\n
@@ -1335,7 +1342,10 @@ elsif ($searchtype eq 'manga') {
     die "Data seems to be malformed";
   }
   
-  if ($blah =~ m{\s*?<h2>Alternative.Titles</h2>.*<span.class=.dark_text.>Japanese:</span>\s?(.*)</div><br.?/>\n
+  if ($blah =~ m{\s*?<h2>Alternative.Titles</h2>.*<span.class=.dark_text.>Japanese:</span>\s?(.*)</div><br.?/>\n}i) {
+    $mess->{other_titles} = { japanese => [ $1 ] };
+  }
+  if ($blah =~ m{\s*?\n
                  \s+<h2>Information</h2>\n
                  .*\n
                  \s+.*<span.class=.dark_text.>Type:</span>\s?(.*)</div>\n
@@ -1345,13 +1355,12 @@ elsif ($searchtype eq 'manga') {
                  \s+</div>\n
                  \s+.*<span.class=.dark_text.>Status:</span>\s?(.*)</div>\n
                  }ix) {
-                   $mess->{other_titles} = { japanese => [ $1 ] };
-                   $mess->{type} = $2;
-                   $mess->{volumes} = $3;
-                   $mess->{chapters} = $4;
-                   $mess->{status} = $5;
-                   undef $mess->{volumes} if lc($3) eq 'unknown';
-                   undef $mess->{chapters} if lc($4) eq 'unknown';
+                   $mess->{type} = $1;
+                   $mess->{volumes} = $2;
+                   $mess->{chapters} = $3;
+                   $mess->{status} = $4;
+                   undef $mess->{volumes} if lc($2) eq 'unknown';
+                   undef $mess->{chapters} if lc($3) eq 'unknown';
                  }
                  
   if ($blah =~ m{.*Genres:</span>\n
@@ -1512,7 +1521,7 @@ if ($blah =~ m{<title>Browse visual novels</title>}) {
 
 sub Wilbell {
 # ** Wilbell
-# ** Google Search fallback
+# ** (Magical!) Google Search fallback
 
 my ($searchterm,$searchtype) = @_;
 my $searchtermwf;
@@ -1672,6 +1681,8 @@ sub now {
  my ($sec,$msec) = gettimeofday;
  return $sec;
 }
+
+# (Outdated) POD incoming
 __END__
 =head1 NAME
 
