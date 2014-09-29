@@ -63,15 +63,15 @@ use Time::Seconds;
 
 # Bot Info
  # Primary nick
- my $pnick = ;
+ my $pnick = "";
  # Alternate nick, used when the primary nick is not available
- my $anick = ;
+ my $anick = "";
  # Ident
- my $ident = ;
+ my $ident = "";
  # Real name
- my $rname = ;
+ my $rname = "";
  # NickServ password; leave empty if not using one
- my $nspwd = ;
+ my $nspwd = "";
 
 # Channels to join
  my @channels = (
@@ -130,7 +130,7 @@ my %opts = (
     timeout         => 30,
     agent           => "",
     default_headers => {
-                         Authorization => "Basic",
+                         Authorization => "",
                          'Cache-Control' => 'no-cache',
                        }
 );
@@ -312,7 +312,7 @@ sub handle_srvmsg {
  }
  elsif ($numeric eq "004") {
    # Login completed
-   &sendRaw("AWAY :MAL searchbot, developed and maintained by TakatsukiYayoi");
+   &sendRaw("AWAY :MAL searchbot, developed and maintained by <devname here>");
    &resetTimeout;
  }
  elsif ($numeric eq "376") {
@@ -441,7 +441,7 @@ if ($response->{success}) {
       return [];
     }
   } else {
-    #insert Wilbell code here
+    # Insert Wilbell code here
     return [];
   }
 } else {
@@ -716,14 +716,11 @@ sub Ayesha {
      # GAWD I HATE DOING THIS
      # XML MODULE Y U NO WERK
      if ($recent =~ /
-          <.*>\n
           \s+<item>\n
-          \s+<title>(?<title>.*)\n
-          \s+<\/title>\n
+          \s+<title>(?<title>.*)<\/title>\n
 		  \s+<link>.*\n
-		  \s+<\/link>\n
-		  \s+<description>(?<description>.*)\n
-		  \s+<\/description>
+		  \s+.*\n
+		  \s+<description><!\[CDATA\[(?<description>.*)\]\]><\/description>\n
 		  \s+<pubDate>(?<date>.*)<\/pubDate>\n
 		  \s+<\/item>
 		  /x) {
@@ -1515,7 +1512,7 @@ if ($blah =~ m{<title>Browse visual novels</title>}) {
 
 sub Wilbell {
 # ** Wilbell
-# ** (Magical!) Google Search fallback
+# ** Google Search fallback
 
 my ($searchterm,$searchtype) = @_;
 my $searchtermwf;
@@ -1675,8 +1672,6 @@ sub now {
  my ($sec,$msec) = gettimeofday;
  return $sec;
 }
-
-# (Outdated) POD incoming
 __END__
 =head1 NAME
 
