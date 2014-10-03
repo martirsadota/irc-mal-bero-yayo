@@ -461,6 +461,7 @@ sub trigger {
    elsif  ($msg =~ /^\.mal -p (.*)$/i)             { &mal_search ($tnick, $chan, $1, 'people', 'search', ''); }
    elsif  ($msg =~ /^\.mal -c (.*?) \/(\d+)$/i)    { &mal_search ($tnick, $chan, $1, 'character', 'info', ($2-1)); }
    elsif  ($msg =~ /^\.mal -c (.*)$/i)             { &mal_search ($tnick, $chan, $1, 'character', 'search', ''); }
+   elsif  ($msg =~ /^\.mal -um (.*)$/i)            { &detailed_info ($1, 'profile-manga', $chan); }
    elsif  ($msg =~ /^\.mal -u (.*)$/i)             { &detailed_info ($1, 'profile', $chan); }
    elsif  ($msg =~ /^\.mal (-a )?(.*?) \/(\d+)$/i) { &mal_search ($tnick, $chan, $2, 'anime', 'info', ($3-1)); }
    elsif  ($msg =~ /^\.mal (-a )?(.*)$/i)          { &mal_search ($tnick, $chan, $2, 'anime', 'search', ''); }
@@ -557,13 +558,14 @@ my $data;
 my $response;
 my $err = 0;
 
-if (grep { $_ eq $searchtype } ('anime','manga','profile')) {
+if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga')) {
   #$response = HTTP::Tiny->new(%optsna)->get("http://mal-api.com/$searchtype/$info_id");
   #eval { local $@; $data = &Ayesha(decode_json ($response -> {content}), $searchtype, $info_id, 1); };
   #if ($@) {
    #local $@;
    #print "DEBUG: Grabbing info via API failed; trying via scrape...\n" if ($test);
-   eval { $data = &Ayesha(&Totori (HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/$searchtype/$info_id")->{content}, $searchtype), $searchtype, $info_id, 1); };
+   my $searchkey = ($searchtype eq 'profile-manga') ? 'profile' : $searchtype;
+   eval { $data = &Ayesha(&Totori (HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/$searchkey/$info_id")->{content}, $searchtype), $searchtype, $info_id, 1); };
    if ($@) { 
      $err = 1;
      print "$@\n" if $test;
@@ -586,7 +588,7 @@ if (grep { $_ eq $searchtype } ('anime','manga','profile')) {
       &sendSay($chan,"$data->{info_line_2}") if (defined($data->{info_line_2}));
 	 }
     } else {
-     &sendSay($chan,"\x02\x0304::\x0F \x02うっうぅ~！\x02 \x02\x0304::\x0F I can't find a profile with that username. \x02\x0304::\x0F") if ($searchtype eq 'profile' and !$err);
+     &sendSay($chan,"\x02\x0304::\x0F \x02うっうぅ~！\x02 \x02\x0304::\x0F I can't find a profile with that username. \x02\x0304::\x0F") if ($searchtype eq 'profile' or $searchtype eq 'profile-manga' and !$err);
     }
     
   $floodprot->{$chan}->{mal} = &now;
@@ -601,6 +603,7 @@ my $tnick = shift;
 &sendNotice($tnick,"\x02.mal -m <manga title>\x02 - Search manga");
 nanosleep(&nss(0.75));
 &sendNotice($tnick,"\x02.mal -u <username>\x02 - View quick info about a user");
+&sendNotice($tnick,"\x02.mal -um <username>\x02 - View quick info about a user (displaying manga stats instead)");
 &sendNotice($tnick,"\x02.mal -p <name>\x02 - Search for people in the anime industry (like seiyuu)");
 &sendNotice($tnick,"\x02.mal -c <name>\x02 - Search for info about an anime/manga character");
 }
@@ -713,7 +716,7 @@ sub Ayesha {
      
      # grab some extra data
      my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rwe&u=$ct")->{content};
-	 print $recent,"\n" if $test;
+	 # print $recent,"\n" if $test;
      # GAWD I HATE DOING THIS
      # XML MODULE Y U NO WERK
      if ($recent =~ /
@@ -730,7 +733,7 @@ sub Ayesha {
 		     $data->{recent}->{date} = ($now - Time::Piece->strptime($+{date}, '%a, %d %b %Y %T %z'))->pretty;
 		     undef $recent;
 		    }
-     
+
      if (!defined($data->{recent}->{title})) { 
          $data->{recent} = "$sep";
      } else {
@@ -742,7 +745,7 @@ sub Ayesha {
        # format the entire thing
        $data->{recent} = "$sep \x02Recent Anime\x02 $data->{recent}->{title} $data->{recent}->{description} ($data->{recent}->{date} ago) $sep";
       }
-     
+	  
      # pre-format
      if (!defined ($data->{anime_stats})) {
        return undef;
@@ -761,14 +764,78 @@ sub Ayesha {
         $data->{anime_stats}->{time_days},
         " days"
        );
-  
+	  }
+      
       $data = {
         info_line_1 => "$sep [MAL] \x02$ct\x02 $sep \x02Profile Link\x02 http://myanimelist.net/profile/$ct $sep \x02Anime List Link\x02 http://myanimelist.net/animelist/$ct $sep $data->{anime_stats} $data->{recent}",
         info_line_2 => ""
        };
        
       return $data;
+    }
+# ------------- USERS - MANGA ----------------#
+   elsif ($type eq 'profile-manga') {
+	 $sep = "\x02\x0305::\x0F";
+     my $now = localtime;
+     
+     # grab some extra data
+     my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rrm&u=$ct")->{content};
+	 # print $recent,"\n" if $test;
+     # GAWD I HATE DOING THIS
+     # XML MODULE Y U NO WERK
+     if ($recent =~ /
+          \s+<item>\n
+          \s+<title>(?<title>.*)<\/title>\n
+		  \s+<link>.*\n
+		  \s+.*\n
+		  \s+<description><!\[CDATA\[(?<description>.*)\]\]><\/description>\n
+		  \s+<pubDate>(?<date>.*)<\/pubDate>\n
+		  \s+<\/item>
+		  /x) {
+		     $data->{recent_manga}->{title} = $+{title};
+		     $data->{recent_manga}->{description} = $+{description};
+		     $data->{recent_manga}->{date} = ($now - Time::Piece->strptime($+{date}, '%a, %d %b %Y %T %z'))->pretty;
+		     undef $recent;
+		    }
+
+     if (!defined($data->{recent_manga}->{title})) { 
+         $data->{recent_manga} = "$sep";
+     } else {
+       # clean the title
+       $data->{recent_manga}->{title} = &cleanup($data->{recent_manga}->{title});
+       # format chaps
+       if ($data->{recent_manga}->{description} !~ /Plan to read/i) { $data->{recent_manga}->{description} =~ s/(.*?) - (\d+|\?) of (\d+|\?)( chapters)?/\[$1 \($2\/$3\)\]/i; }
+       else { $data->{recent_manga}->{description} = "[Plan to Read]"; }
+       # format the entire thing
+       $data->{recent_manga} = "$sep \x02Recent Manga\x02 $data->{recent_manga}->{title} $data->{recent_manga}->{description} ($data->{recent_manga}->{date} ago) $sep";
       }
+     
+     # pre-format
+     if (!defined ($data->{manga_stats})) {
+       return undef;
+     } else {
+     $data->{manga_stats} = join ('',
+        "\x02Manga List Entries\x02 ",
+        $data->{manga_stats}->{total_entries}, ' [',
+        join ('/',
+          $data->{manga_stats}->{reading},
+          $data->{manga_stats}->{completed},
+          $data->{manga_stats}->{plan_to_read},
+          $data->{manga_stats}->{on_hold},
+          $data->{manga_stats}->{dropped}
+         ), ']',
+        " $sep \x02Time Spent Reading\x02 ",
+        $data->{manga_stats}->{time_days},
+        " days"
+       );
+      }
+      
+	  $data = {
+        info_line_1 => "$sep [MAL] \x02$ct\x02 $sep \x02Profile Link\x02 http://myanimelist.net/profile/$ct $sep \x02Manga List Link\x02 http://myanimelist.net/mangalist/$ct $sep $data->{manga_stats} $data->{recent_manga}",
+        info_line_2 => ""
+       };
+       
+      return $data;
     }
 # -------------- PEOPLE ------------------#
    elsif ($type eq 'people') {
@@ -1254,7 +1321,6 @@ elsif ($searchtype eq 'anime') {
     die "Data seems to be malformed";
   }
   
-  #TODO: fix "WUG haz no Japano0ze" bug (no JP title) :: split alt-title search regex and info search regex
   if ($blah =~ m{\s*?<h2>Alternative.Titles</h2>.*<span.class=.dark_text.>Japanese:</span>\s?(.*)</div><br.?/>\n}i) {
                      $mess->{other_titles} = { japanese => [ $1 ] };
   }
@@ -1387,7 +1453,7 @@ elsif ($searchtype eq 'manga') {
   #$mess = [ $mess ];
 }
 #---------------- USERS --------------------#
-elsif ($searchtype eq 'profile') {
+elsif ($searchtype eq 'profile' or $searchtype eq 'profile-manga') {
  # die "This function is a stub. You can help Yayoi by expanding it.";
  if ($blah =~ m{\s+<tr>\n
                 \s+<td.width.*?lightLink.>Time..Days.</span></td>\n
@@ -1430,6 +1496,53 @@ elsif ($searchtype eq 'profile') {
                                                on_hold       => $4,
                                                dropped       => $5,
                                                plan_to_watch => $6,
+                                               total_entries => $7
+                                             };
+                   } else {
+                     die "Data seems malformed";
+                   }
+				   
+ if ($blah =~ m{\s+<tr>\n
+                \s+<td.width.*?lightLink.>Time..Days.</span></td>\n
+                \s+<td.width.*?><span.*?Days.>(.*?)</span></td>\n
+                .*\n
+                .*\n
+                .*\n
+                \s+<td.width.*?lightLink.>Reading</span></td>\n
+                \s+<td.align..center.>(\d+)</td>\n
+                .*\n
+                .*\n
+                .*\n
+                \s+<td.width.*?lightLink.>Completed</span></td>\n
+                \s+<td.align..center.>(\d+)</td>\n
+                .*\n
+                .*\n
+                .*\n
+                \s+<td.width.*?lightLink.>On.Hold</span></td>\n
+                \s+<td.align..center.>(\d+)</td>\n
+                .*\n
+                .*\n
+                .*\n
+                \s+<td.width.*?lightLink.>Dropped</span></td>\n
+                \s+<td.align..center.>(\d+)</td>\n
+                .*\n
+                .*\n
+                .*\n
+                \s+<td.width.*?lightLink.>Plan.to.Read</span></td>\n
+                \s+<td.align..center.>(\d+)</td>\n
+                .*\n
+                .*\n
+                .*\n
+                \s+<td.width.*?lightLink.>Total.Entries</span></td>\n
+                \s+<td.align..center.>(\d+)</td>\n
+              }ix) {
+                     $mess->{manga_stats} = {
+                                               time_days     => $1,
+                                               reading       => $2,
+                                               completed     => $3,
+                                               on_hold       => $4,
+                                               dropped       => $5,
+                                               plan_to_read  => $6,
                                                total_entries => $7
                                              };
                    } else {
