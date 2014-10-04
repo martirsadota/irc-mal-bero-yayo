@@ -81,7 +81,7 @@ use Time::Seconds;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.10.02";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.9.14";
  # QUIT message
  my $quitmsg = "";
  
@@ -715,7 +715,7 @@ sub Ayesha {
      my $now = localtime;
      
      # grab some extra data
-     my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rw&u=$ct")->{content};
+     my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rwe&u=$ct")->{content};
 	 # print $recent,"\n" if $test;
      # GAWD I HATE DOING THIS
      # XML MODULE Y U NO WERK
@@ -779,7 +779,7 @@ sub Ayesha {
      my $now = localtime;
      
      # grab some extra data
-     my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rm&u=$ct")->{content};
+     my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rrm&u=$ct")->{content};
 	 # print $recent,"\n" if $test;
      # GAWD I HATE DOING THIS
      # XML MODULE Y U NO WERK
@@ -803,7 +803,6 @@ sub Ayesha {
      } else {
        # clean the title
        $data->{recent_manga}->{title} = &cleanup($data->{recent_manga}->{title});
-	   $data->{recent_manga}->{description} =~ s/Watching/Reading/i;
        # format chaps
        if ($data->{recent_manga}->{description} !~ /Plan to read/i) { $data->{recent_manga}->{description} =~ s/(.*?) - (\d+|\?) of (\d+|\?)( chapters)?/\[$1 \($2\/$3\)\]/i; }
        else { $data->{recent_manga}->{description} = "[Plan to Read]"; }
