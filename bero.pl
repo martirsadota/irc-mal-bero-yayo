@@ -271,8 +271,10 @@ sub handle_chanmsg {
  elsif ($msg =~ /^$nick(,|:) introduce yourself|^!yayointro$/i and grep { $_ eq &stripcode($shost) } (@admin_hosts) ) { &detailed_info(56807,'character',$tchan); &resetTimeout; }
  elsif ($msg =~ /^!whodid (.*)$/i and not(grep {$_ eq $snick} (@hardban_nicks) or grep {$_ eq $shost} (@hardban_hosts))) { &whodid($tchan,$snick,$1); &resetTimeout; }
  elsif ($msg =~ /^$nick(,|:) do you know ((of )?me|who (am I|I am))+\?$/i) { &mal_search ($snick, $tchan, &spaceit($snick), 'character', 'search', 'whoami'); }
+ elsif ($msg =~ /^.vndb -c (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'info', ($2-1)); }
  elsif ($msg =~ /^.vndb (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'info', ($2-1)); }
  elsif ($msg =~ m{(?:http://)?myanimelist\.net/(anime|manga|character|people)/(\d+)}i) { &detailed_info ($2, $1, $tchan, 1,1); }
+ elsif ($msg =~ /^.vndb -c (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'search', ''); }
  elsif ($msg =~ /^.vndb (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'search', ''); }
 }
 
@@ -485,7 +487,11 @@ my $results;
 if ($searchtype eq 'vndb') {
 $searchtermwf =~ s/%20/+/g;
 $response = HTTP::Tiny->new()->get("http://vndb.org/v/all?sq=$searchtermwf");
-$results = &Escha($response -> {content});
+$results = &Escha($response -> {content},'vndb');
+} elsif ($searchtype eq 'vndb-char') {
+$searchtermwf =~ s/%20/+/g;
+$response = HTTP::Tiny->new()->get("http://vndb.org/c/all?q=$searchtermwf&fil=");
+$results = &Escha($response -> {content},'vndb-char');
 } elsif (grep { $_ eq $searchtype } ('anime','manga')) {
 $response = HTTP::Tiny->new(%opts)->get("http://myanimelist.net/api/$searchtype/search.xml?q=$searchtermwf");
 $results = &Rorona($response -> {content});
@@ -496,8 +502,8 @@ $results = &Rorona($response -> {content});
 
 my $ct = 0;
 my $bit = ($searchtype eq 'manga') ? '-m ' : ($searchtype eq 'people') ? '-p ' : ($searchtype eq 'character') ? '-c ' : '';
-my $trig = ($searchtype eq 'vndb') ? 'vndb' : 'mal';
-my $spage = ($searchtype eq 'vndb') ? "http://vndb.org/v/all?sq=$searchtermwf" : "http://myanimelist.net/$searchtype.php?q=$searchtermwf";
+my $trig = ($searchtype =~ /^vndb/i) ? 'vndb' : 'mal';
+my $spage = ($searchtype eq 'vndb') ? "http://vndb.org/v/all?sq=$searchtermwf" : ($searchtype eq 'vndb-char') ? "http://vndb.org/c/all?q=$searchtermwf" : "http://myanimelist.net/$searchtype.php?q=$searchtermwf";
 
 # print $response->{content};
   if (scalar(@$results) == 0) {
@@ -517,7 +523,7 @@ my $spage = ($searchtype eq 'vndb') ? "http://vndb.org/v/all?sq=$searchtermwf" :
        # Xchat:prnt("\x0303*DEBUG\x0F\t\$ct is: $ct");
        if (scalar(@$results) == 1) {
          # 1 show found; print complete details
-            if (grep { $_ eq $searchtype } ('anime','manga','character')) {
+            if (grep { $_ eq $searchtype } ('anime','manga','character','vndb-char')) {
               &detailed_info ($i->{id}, $searchtype, $chan);
             } else {              
               &sendSay($chan,"$data->{info_line_1}");
@@ -572,8 +578,8 @@ if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga')) {
      &sendSay($chan,"\x02\x0304::\x0F \x02うっうぅ~！\x02 \x02\x0304::\x0F My info servers be a-derpin'; please don't use this command until the problem has been fixed. \x02\x0304::\x0F") unless ($parse);
    }
   #}
-} elsif ($searchtype eq 'vndb') {
-  $data = &Ayesha(&Escha(HTTP::Tiny->new->get("http://vndb.org/$info_id")->{content})->[0], $searchtype, $info_id, 1);
+} elsif (grep { $_ eq $searchtype } ('vndb','vndb-char')) {
+  $data = &Ayesha(&Escha(HTTP::Tiny->new->get("http://vndb.org/$info_id")->{content},$searchtype)->[0], $searchtype, $info_id, 1);
   
 } else {
   $response = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/$searchtype/$info_id");
@@ -803,6 +809,7 @@ sub Ayesha {
      } else {
        # clean the title
        $data->{recent_manga}->{title} = &cleanup($data->{recent_manga}->{title});
+	   $data->{recent_manga}->{description} =~ s/Watching/Reading/i;
        # format chaps
        if ($data->{recent_manga}->{description} !~ /Plan to read/i) { $data->{recent_manga}->{description} =~ s/(.*?) - (\d+|\?) of (\d+|\?)( chapters)?/\[$1 \($2\/$3\)\]/i; }
        else { $data->{recent_manga}->{description} = "[Plan to Read]"; }
@@ -994,6 +1001,37 @@ sub Ayesha {
      $data = {
          info_line_1 => "$sep [VNDB] \x02$data->{title}\x02 $data->{japanese}$data->{pub}$sep \x02Released for\x02 $data->{rels} $sep \x02Rating\x02 $data->{score}/10 (Ranked \#$data->{rank}) $data->{nsfw}",
          info_line_2 => "$sep \x02Synopsis\x02 $data->{desc} $sep \x02Link\x02 http://vndb.org/$data->{id} $sep",
+       };
+   }
+   return $data;
+   }
+# -------- VNDB - CHARACTERS -------#
+   elsif ($type eq 'vndb-char') {
+   $sep = $sep = "\x02\x0311::\x0F";
+   if (!defined $data->{desc}) {
+     $data = {
+         info_line_1 => "$sep [VNDB/Character] \x02$data->{name}\x0F $sep \x02Appears in\x02 $data->{vn} $sep \x02Link\x02 http://vndb.org/$data->{id} $sep",
+         result_line => "$sep [VNDB/Character] \x02$data->{name}\x0F $sep \x02Appears in\x02 $data->{vn} $sep \x02Link\x02 http://vndb.org/$data->{id} $sep"
+       };
+   } else {
+     #cleanup
+     $data->{title} = &cleanup($data->{name});
+     $data->{desc} = &cleanup($data->{desc});
+     
+     $data->{desc} = ($data->{desc} eq '-') ? 'None' : $data->{desc};
+     $data->{jp_name} = (!defined $data->{jp_name}) ? "" : "($data->{jp_name}) ";
+     
+     #trim the description
+     if (length ($data->{desc}) > 325) {
+     $data->{desc} =~ s/ ...$//;
+     $data->{desc} =~ s/(.{325}).*/$1/;
+     $data->{desc} = "$data->{desc}...";
+     }
+     
+     #final output
+     $data = {
+         info_line_1 => "$sep [VNDB/Character] \x02$data->{name}\x02 $data->{jp_name}$sep \x02Appears in\x02 $data->{vn} $sep",
+         info_line_2 => "$sep \x02Quick Info\x02 $data->{desc} $sep \x02Link\x02 http://vndb.org/$data->{id} $sep",
        };
    }
    return $data;
@@ -1557,9 +1595,10 @@ sub Escha {
 # ** Escha Malier, Alchemist of the Dusk Sky
 # ** VNDB scraper and data synthesizer
 
-my $blah = shift;
+my ($blah,$searchtype) = @_;
 #print $blah,"\n";
 my $mess ;
+if ($searchtype eq 'vndb') {
 if ($blah =~ m{<title>Browse visual novels</title>}) {
 	#say "landed on search page";
 	if ($blah =~ m{<body>(.*)</body>}si) {
@@ -1629,6 +1668,38 @@ if ($blah =~ m{<title>Browse visual novels</title>}) {
 		$mess->{rels} = \@rels;
 	}
 	return [$mess];
+}
+}
+
+elsif ($searchtype eq 'vndb-char') {
+if ($blah =~ m{<h1>Browse characters</h1>}) {
+	#say "landed on search page";
+	if ($blah =~ m{<body>(.*)</body>}si) {
+	                my $vndump = $1;
+	                #say $vndump;
+	                my @vns;
+	                while ($vndump =~ m{<td.class..tc2.><a.href...(c\d+).*?>(.*?)</a>.*?<b.class..grayedout.><a.*?title..(.*?).>}ig) {
+	                                      push @vns, {
+	                                                   'name'  => $2,
+	                                                   'id'    => $1,
+	                                                   'vn'    => $3,
+	                                                  };
+	                                            }
+	                                      if (scalar(@vns) > 0) {
+	                                        #pop @vns;
+											return \@vns;
+										  } else {
+											return [];
+										  }
+	                }
+} else {
+if ($blah =~ m{<li.class="tabselected">.*?<a.*?>(c\d+?)</a>}si) { $mess->{id} = $1; }
+if ($blah =~ m{<div.class..mainbox.*?<h1>(.*?)</h1>}si) { $mess->{name} = $1; }
+if ($blah =~ m{<h2.class..alttitle.>(.*?)</h2>}si) { $mess->{jp_name} = $1; }
+if ($blah =~ m{<a.href...v\d+.chars.>(.*?)</a>}si) { $mess->{vn} = $1; }
+if ($blah =~ m{<td.class..chardesc.*><p>(.*?)</p>}si) { $mess->{desc} = $1; }
+}
+return [ $mess] ;
 }
 }
 
