@@ -1,7 +1,7 @@
 irc-mal-bero-yayo
 =================
 
-IRC infobot that uses MyAnimeList info
+IRC infobot that uses [MyAnimeList](http://myanimelist.net) info
 
 ## Features currently available
   * General search
@@ -10,6 +10,11 @@ IRC infobot that uses MyAnimeList info
    * Characters
    * People
    * Users
+     * Anime Stats
+     * Manga Stats
+  * [VNDB](http://vndb.org) Search
+    * Visual Novels
+    * Characters
   * The `!whodid` trigger (which fansub group/s did a particular show)
   * Google Search Fallback (lovingly called `Wilbell`, because it's **magical!**)
    
@@ -23,4 +28,3 @@ IRC infobot that uses MyAnimeList info
     
 ## In the pipeline
   * `.lw` (User's last watched anime)
-  * ~~`.mal -um <username>` (Display manga stats instead of anime stats)~~ _IMPLEMENTED!_ \o/
