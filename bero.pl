@@ -81,7 +81,7 @@ use Time::Seconds;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.9.14";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.10.02";
  # QUIT message
  my $quitmsg = "";
  
@@ -911,7 +911,16 @@ sub Ayesha {
     } else {
      $data->{jp_name} = (!defined($data->{jp_name})) ? $sep : "($data->{jp_name}) $sep";
 	 # TODO: Fix "Eucliwood Overflow" issue (too many seiyuu)
-     $data->{seiyuu} = (!defined($data->{seiyuu})) ? '' : " \x02Voiced by\x02 ".join(', ',@{$data->{seiyuu}})." $sep";
+     #$data->{seiyuu} = (!defined($data->{seiyuu})) ? '' : " \x02Voiced by\x02 ".join(', ',@{$data->{seiyuu}})." $sep";
+	 if (defined($data->{seiyuu})) {
+       if (scalar(@{$data->{seiyuu}}) > 3) {
+         $data->{seiyuu} = " \x02Voiced by\x02 " . join (', ', @{$data->{seiyuu}}[0 .. 2]) . " (and " . (scalar(@{$data->{seiyuu}}) - 3) . " others) $sep";
+       } else {
+         $data->{seiyuu} = " \x02Voiced by\x02 " . join (', ', @{$data->{seiyuu}}) . " $sep";
+       }
+     } else {
+       $data->{seiyuu} = '';
+     }
      # clean up the info
      $data->{info} = &cleanup($data->{info});
     
