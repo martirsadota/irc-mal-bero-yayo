@@ -81,7 +81,7 @@ use Time::Seconds;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.10.02";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.10.10";
  # QUIT message
  my $quitmsg = "";
  
@@ -1704,11 +1704,11 @@ if ($blah =~ m{<h1>Browse characters</h1>}) {
 } else {
 if ($blah =~ m{<li.class="tabselected">.*?<a.*?>(c\d+?)</a>}si) { $mess->{id} = $1; }
 if ($blah =~ m{<div.class..mainbox.*?<h1>(.*?)</h1>}si) { $mess->{name} = $1; }
-if ($blah =~ m{<h2.class..alttitle.>(.*?)</h2>}si) { $mess->{jp_name} = $1; }
+if ($blah =~ m{(?|<h2.class..alttitle.>(.*?)</h2>|<td.class..key.*?<td>(.*?)</td>)}si) { $mess->{jp_name} = $1; }
 if ($blah =~ m{<a.href...v\d+.chars.>(.*?)</a>}si) { $mess->{vn} = $1; }
 if ($blah =~ m{<td.class..chardesc.*><p>(.*?)</p>}si) { $mess->{desc} = $1; }
 }
-return [ $mess] ;
+return [ $mess ] ;
 }
 }
 
