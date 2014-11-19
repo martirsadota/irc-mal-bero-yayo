@@ -274,6 +274,7 @@ sub handle_chanmsg {
  elsif ($msg =~ /^.vndb -c (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'info', ($2-1)); }
  elsif ($msg =~ /^.vndb (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'info', ($2-1)); }
  elsif ($msg =~ m{(?:http://)?myanimelist\.net/(anime|manga|character|people)/(\d+)}i) { &detailed_info ($2, $1, $tchan, 1,1); }
+ elsif ($msg =~ /^.vndb$/i) { &vndb_help ($snick); }
  elsif ($msg =~ /^.vndb -c (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'search', ''); }
  elsif ($msg =~ /^.vndb (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'search', ''); }
 }
@@ -612,6 +613,13 @@ nanosleep(&nss(0.75));
 &sendNotice($tnick,"\x02.mal -um <username>\x02 - View quick info about a user (displaying manga stats instead)");
 &sendNotice($tnick,"\x02.mal -p <name>\x02 - Search for people in the anime industry (like seiyuu)");
 &sendNotice($tnick,"\x02.mal -c <name>\x02 - Search for info about an anime/manga character");
+}
+
+sub vndb_help {
+my $tnick = shift;
+&sendNotice($tnick,"Search vndb.org");
+&sendNotice($tnick,"\x02.vndb <VN title>\x02 - Search visual novels");
+&sendNotice($tnick,"\x02.vndb -c <name>\x02 - Search characters from VNs");
 }
 
 # **** --- INTERNAL SUBROUTINES --- **** #
@@ -985,8 +993,9 @@ sub Ayesha {
      
      $data->{desc} = ($data->{desc} eq '-') ? 'None' : $data->{desc};
      $data->{japanese} = (!defined $data->{japanese}) ? "" : "($data->{japanese}) ";
-     $data->{pub} = (!defined $data->{pub}) ? "" : "$sep \x02Publisher\x02 $data->{pub} ";
+     $data->{dev} = (!defined $data->{dev}) ? "" : "$sep \x02Developer\x02 $data->{dev} ";
      $data->{nsfw} = ($data->{nsfw}) ? "\x02\x0304[NSFW]\x0F $sep" : "$sep";
+	 $data->{len} = (defined $data->{len}) ? decode_entities($data->{len}) : "?";
      
      #trim the description
      if (length ($data->{desc}) > 325) {
@@ -1008,7 +1017,7 @@ sub Ayesha {
      
      #final output
      $data = {
-         info_line_1 => "$sep [VNDB] \x02$data->{title}\x02 $data->{japanese}$data->{pub}$sep \x02Released for\x02 $data->{rels} $sep \x02Rating\x02 $data->{score}/10 (Ranked \#$data->{rank}) $data->{nsfw}",
+         info_line_1 => "$sep [VNDB] \x02$data->{title}\x02 $data->{japanese}$data->{dev}$sep \x02Released for\x02 $data->{rels} $sep \x02Length\x02 $data->{len} $sep \x02Rating\x02 $data->{score}/10 (Ranked \#$data->{rank}) $data->{nsfw}",
          info_line_2 => "$sep \x02Synopsis\x02 $data->{desc} $sep \x02Link\x02 http://vndb.org/$data->{id} $sep",
        };
    }
