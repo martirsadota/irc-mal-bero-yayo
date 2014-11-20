@@ -3,6 +3,8 @@ irc-mal-bero-yayo
 
 IRC infobot that uses [MyAnimeList](http://myanimelist.net) info
 
+Visit the live instance at [#doki on Rizon](irc://irc.rizon.net/doki).
+
 ## Features currently available
   * General search
    * Anime
