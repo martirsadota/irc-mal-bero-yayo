@@ -81,7 +81,7 @@ use Time::Seconds;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.10.10";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.12.13";
  # QUIT message
  my $quitmsg = "";
  
@@ -132,6 +132,7 @@ my %opts = (
     default_headers => {
                          Authorization => "",
                          'Cache-Control' => 'no-cache',
+						 'Pragma' => 'no-cache'
                        }
 );
 
@@ -145,6 +146,7 @@ my %optssc = (
     agent           => "",
     default_headers => {
                          'Cache-Control' => 'no-cache',
+						 'Pragma' => 'no-cache'
                        }
 );
 
@@ -1370,7 +1372,7 @@ $ct = 0;
 
 #---------------- ANIME --------------------#
 elsif ($searchtype eq 'anime') {
-  if ($blah =~ m{\s+<h1><div.style.*>Ranked.\#(.*)</div>(.*?)</h1>\n}) {
+  if ($blah =~ m{<h1><div.style.*>Ranked.\#(.*)</div>(.*?)</h1>\n}) {
     $mess->{rank} = $1;
     $mess->{title} = $2;
   } else {
@@ -1456,7 +1458,7 @@ elsif ($searchtype eq 'anime') {
 }
 #---------------- MANGA --------------------#
 elsif ($searchtype eq 'manga') {
-  if ($blah =~ m{\s+<h1><div.style.*>Ranked.\#(.*)</div>(.*?)</h1>\n}) {
+  if ($blah =~ m{<h1><div.style.*>Ranked.\#(.*)</div>(.*?)</h1>\n}) {
     $mess->{rank} = $1;
     $mess->{title} = $2;
     $mess->{title} =~ s/\s+<span.*//;
