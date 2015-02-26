@@ -81,7 +81,7 @@ use Time::Seconds;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.12.13";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.14.00";
  # QUIT message
  my $quitmsg = "";
  
@@ -1757,6 +1757,7 @@ sub cleanup {
     $data = decode_entities($data);
     $data = encode('UTF-8',$data,Encode::FB_PERLQQ);
     $data =~ s{<input.type.*?Hide.spoiler.>(<br\s?/?>)?(.*?)<!--spoiler--></span>}{$2}si; # Prepare to be spoiled!
+    $data =~ s{<div.class..border_top..style..padding.*?>.*?pubads.*$}{}si; # Kill all ads!
     $data =~ s/\\(n|r)+/ | /g;
     $data =~ s/(\n|\r)+//g;
     $data =~ s/(<[bh]r\s*?\/?>)+/ | /g;
