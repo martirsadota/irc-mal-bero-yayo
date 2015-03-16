@@ -49,6 +49,8 @@ use HTML::Entities;
 use URI::Escape;
 use Time::Piece;
 use Time::Seconds;
+use DBI;
+require DBD::SQLite;
 
 
 # **----- CONFIG SECTION -----** #
@@ -81,7 +83,7 @@ use Time::Seconds;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.14.00";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.20.00";
  # QUIT message
  my $quitmsg = "";
  
@@ -152,6 +154,9 @@ my %optssc = (
 
 # Open filehandles
 open (my $runlog,">>","$ENV{HOME}/yayoi/bero/berolog.log") or warn "Cannot open log file: $!\n";
+my $Yamaku = DBI->connect("dbi:SQLite:dbname=$ENV{HOME}/yayoi/bero/lw_nicklist.db","","",{AutoCommit => 1, RaiseError => 1, PrintError => 0});
+my $Shizune = $Yamaku->prepare(qq{SELECT mal_uname FROM mal_assoc WHERE irc_nick = ?});
+my $Misha = $Yamaku->prepare(qq{INSERT OR REPLACE INTO mal_assoc (irc_nick, mal_uname) VALUES (?, ?)});
 
 MAINLOOP:
 eval {
@@ -268,17 +273,24 @@ if ($deko =~ /Possible ping timeout: disconnecting./) {
 # **----- SUBROUTINES -----** #
 # Event handler subs
 sub handle_chanmsg {
+ my ($me_id,$me_stype) = ($drills) ? ('c758','vndb-char') : (56807,'character');
  my ($snick,$sident,$shost,$tchan,$msg) = @_;
  if ($msg =~ /^(\.mal.*)$/i and not(grep {$_ eq $snick} (@hardban_nicks) or grep {$_ eq $shost} (@hardban_hosts))) { &trigger($snick,$1,$tchan); &resetTimeout;}
- elsif ($msg =~ /^$nick(,|:) introduce yourself|^!yayointro$/i and grep { $_ eq &stripcode($shost) } (@admin_hosts) ) { &detailed_info(56807,'character',$tchan); &resetTimeout; }
+ elsif ($msg =~ /^\.lw$/i) { &detailed_info(&find_mal_nick($snick),'last-watched',$tchan); &resetTimeout; }
+ elsif ($msg =~ /^\.lr$/i) { &detailed_info(&find_mal_nick($snick),'last-read',$tchan); &resetTimeout; }
+ elsif ($msg =~ /^\.lw -n (.*)$/i) { &detailed_info(&find_mal_nick($1),'last-watched',$tchan); &resetTimeout; }
+ elsif ($msg =~ /^\.lr -n (.*)$/i) { &detailed_info(&find_mal_nick($1),'last-read',$tchan); &resetTimeout; }
+ elsif ($msg =~ /^\.lw (.*)$/i) { &detailed_info($1,'last-watched',$tchan); &resetTimeout; }
+ elsif ($msg =~ /^\.lr (.*)$/i) { &detailed_info($1,'last-read',$tchan); &resetTimeout; }
+ elsif ($msg =~ /^$nick(,|:) introduce yourself|^!yayointro$/i and grep { $_ eq &stripcode($shost) } (@admin_hosts) ) { &detailed_info($me_id,$me_stype,$tchan); &resetTimeout; }
  elsif ($msg =~ /^!whodid (.*)$/i and not(grep {$_ eq $snick} (@hardban_nicks) or grep {$_ eq $shost} (@hardban_hosts))) { &whodid($tchan,$snick,$1); &resetTimeout; }
  elsif ($msg =~ /^$nick(,|:) do you know ((of )?me|who (am I|I am))+\?$/i) { &mal_search ($snick, $tchan, &spaceit($snick), 'character', 'search', 'whoami'); }
- elsif ($msg =~ /^.vndb -c (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'info', ($2-1)); }
- elsif ($msg =~ /^.vndb (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'info', ($2-1)); }
+ elsif ($msg =~ /^\.vndb -c (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'info', ($2-1)); }
+ elsif ($msg =~ /^\.vndb (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'info', ($2-1)); }
  elsif ($msg =~ m{(?:http://)?myanimelist\.net/(anime|manga|character|people)/(\d+)}i) { &detailed_info ($2, $1, $tchan, 1,1); }
- elsif ($msg =~ /^.vndb$/i) { &vndb_help ($snick); }
- elsif ($msg =~ /^.vndb -c (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'search', ''); }
- elsif ($msg =~ /^.vndb (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'search', ''); }
+ elsif ($msg =~ /^\.vndb$/i) { &vndb_help ($snick); }
+ elsif ($msg =~ /^\.vndb -c (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'search', ''); }
+ elsif ($msg =~ /^\.vndb (.*)$/i) { &mal_search ($snick, $tchan, $1, 'vndb', 'search', ''); }
 }
 
 sub handle_chanaction {
@@ -460,6 +472,7 @@ sub trigger {
  my ($tnick,$msg,$chan) = @_;
   if (!defined($floodprot->{$chan}->{mal}) || (&now - $floodprot->{$chan}->{mal}) > $interval->{$chan}->{mal}) {
    if     ($msg =~ /^\.mal$/)                      { &mal_help ($tnick); }
+   elsif  ($msg =~ /^\.mal -r (.*)$/i)             { &register_nick ($tnick, $1, $chan); }
    elsif  ($msg =~ /^\.mal -m (.*?) \/(\d+)$/i)    { &mal_search ($tnick, $chan, $1, 'manga', 'info', ($2-1)); }
    elsif  ($msg =~ /^\.mal -m (.*)$/i)             { &mal_search ($tnick, $chan, $1, 'manga', 'search', ''); }
    elsif  ($msg =~ /^\.mal -p (.*?) \/(\d+)$/i)    { &mal_search ($tnick, $chan, $1, 'people', 'info', ($2-1)); }
@@ -567,13 +580,15 @@ my $data;
 my $response;
 my $err = 0;
 
-if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga')) {
+if (grep { $_ eq $searchtype } ('last-watched','last-read') and (not defined ($info_id) or $info_id eq '')) { &sendSay($chan,"\x02\x0304::\x0F \x02うっうぅ~！\x02 \x02\x0304::\x0F No MAL user associated with your nick; use \x02.mal -r MAL_username\x02 to associate a MAL user to your nick. \x02\x0304::\x0F"); return undef; }
+
+if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga','last-watched','last-read')) {
   #$response = HTTP::Tiny->new(%optsna)->get("http://mal-api.com/$searchtype/$info_id");
   #eval { local $@; $data = &Ayesha(decode_json ($response -> {content}), $searchtype, $info_id, 1); };
   #if ($@) {
    #local $@;
    #print "DEBUG: Grabbing info via API failed; trying via scrape...\n" if ($test);
-   my $searchkey = ($searchtype eq 'profile-manga') ? 'profile' : $searchtype;
+   my $searchkey = (grep { $_ eq $searchtype } ('profile-manga','last-watched','last-read')) ? 'profile' : $searchtype;
    eval { $data = &Ayesha(&Totori (HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/$searchkey/$info_id")->{content}, $searchtype), $searchtype, $info_id, 1); };
    if ($@) { 
      $err = 1;
@@ -592,6 +607,8 @@ if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga')) {
     if (defined($data)) {
 	 if ($parse) {
 	  &sendSay($chan,"$data->{parse_line}");
+	 } elsif (grep { $_ eq $searchtype } ('last-watched','last-read')) {
+	  &sendSay($chan,"$data->{lwr_line}");
 	 } else {
       &sendSay($chan,"$data->{info_line_1}");
       &sendSay($chan,"$data->{info_line_2}") if (defined($data->{info_line_2}));
@@ -726,7 +743,7 @@ sub Ayesha {
     return $data;
     }
 # -------------- USERS -------------------#
-   elsif ($type eq 'profile') {
+   elsif (grep { $_ eq $type } ('profile','last-watched')) {
      $sep = "\x02\x0306::\x0F";
      my $now = localtime;
      
@@ -757,8 +774,10 @@ sub Ayesha {
        $data->{recent}->{title} = &cleanup($data->{recent}->{title});
        # format eps
        if ($data->{recent}->{description} !~ /Plan to watch/i) { $data->{recent}->{description} =~ s/(.*?) - (\d+|\?) of (\d+|\?)( episodes)?/\[$1 \($2\/$3\)\]/i; }
+	   if ($data->{recent}->{description} =~ /\((\d+|\?)\/.*?\)/i) { $data->{recent}->{currEp} = $1; }
        else { $data->{recent}->{description} = "[Plan to Watch]"; }
        # format the entire thing
+	   $data->{lwr_line} = "Episode \x02$data->{recent}->{currEp}\x02 of \x02$data->{recent}->{title}\x02, $data->{recent}->{date} ago.";
        $data->{recent} = "$sep \x02Recent Anime\x02 $data->{recent}->{title} $data->{recent}->{description} ($data->{recent}->{date} ago) $sep";
       }
 	  
@@ -784,13 +803,14 @@ sub Ayesha {
       
       $data = {
         info_line_1 => "$sep [MAL] \x02$ct\x02 $sep \x02Profile Link\x02 http://myanimelist.net/profile/$ct $sep \x02Anime List Link\x02 http://myanimelist.net/animelist/$ct $sep $data->{anime_stats} $data->{recent}",
-        info_line_2 => ""
+        info_line_2 => "",
+		lwr_line => "$sep [MAL] \x02$ct\x02 last watched $data->{lwr_line} $sep (http://myanimelist.net/animelist/$ct) $sep"
        };
        
       return $data;
     }
 # ------------- USERS - MANGA ----------------#
-   elsif ($type eq 'profile-manga') {
+   elsif (grep { $_ eq $type } ('profile-manga','last-read')) {
 	 $sep = "\x02\x0305::\x0F";
      my $now = localtime;
      
@@ -822,8 +842,10 @@ sub Ayesha {
 	   $data->{recent_manga}->{description} =~ s/Watching/Reading/i;
        # format chaps
        if ($data->{recent_manga}->{description} !~ /Plan to read/i) { $data->{recent_manga}->{description} =~ s/(.*?) - (\d+|\?) of (\d+|\?)( chapters)?/\[$1 \($2\/$3\)\]/i; }
+	   if ($data->{recent_manga}->{description} =~ /\((\d+|\?)\/.*?\)/i) { $data->{recent_manga}->{currChap} = $1; }
        else { $data->{recent_manga}->{description} = "[Plan to Read]"; }
        # format the entire thing
+	   $data->{lwr_line} = "Chapter \x02$data->{recent_manga}->{currChap}\x02 of \x02$data->{recent_manga}->{title}\x02, $data->{recent_manga}->{date} ago.";
        $data->{recent_manga} = "$sep \x02Recent Manga\x02 $data->{recent_manga}->{title} $data->{recent_manga}->{description} ($data->{recent_manga}->{date} ago) $sep";
       }
      
@@ -849,7 +871,8 @@ sub Ayesha {
       
 	  $data = {
         info_line_1 => "$sep [MAL] \x02$ct\x02 $sep \x02Profile Link\x02 http://myanimelist.net/profile/$ct $sep \x02Manga List Link\x02 http://myanimelist.net/mangalist/$ct $sep $data->{manga_stats} $data->{recent_manga}",
-        info_line_2 => ""
+        info_line_2 => "",
+		lwr_line => "$sep [MAL] \x02$ct\x02 last read $data->{lwr_line} $sep (http://myanimelist.net/mangalist/$ct) $sep"
        };
        
       return $data;
@@ -1511,7 +1534,7 @@ elsif ($searchtype eq 'manga') {
   #$mess = [ $mess ];
 }
 #---------------- USERS --------------------#
-elsif ($searchtype eq 'profile' or $searchtype eq 'profile-manga') {
+elsif (grep { $_ eq $searchtype } ('profile','profile-manga','last-watched','last-read')) {
  # die "This function is a stub. You can help Yayoi by expanding it.";
  if ($blah =~ m{\s+<tr>\n
                 \s+<td.width.*?lightLink.>Time..Days.</span></td>\n
@@ -1747,6 +1770,28 @@ if (defined($mess->{responseData}->{'results'}->[0]->{unescapedUrl})
 
 }
 
+sub find_mal_nick {
+  my $irc_nick = shift;
+  $irc_nick =~ s/\s//g;
+  print "Shizune: searching for $irc_nick in database\n" if $test;
+  
+  $Shizune->bind_param(1, "$irc_nick");
+  $Shizune->execute();
+  my $Iwako_no_Tegami = $Shizune->fetch();
+  return $Iwako_no_Tegami->[0];
+}
+
+sub register_nick {
+  my ($irc_nick,$mal_nick,$tchan) = @_;
+  $irc_nick =~ s/\s//g;
+  $mal_nick =~ s/\s//g;
+  eval { $Misha->execute($irc_nick,$mal_nick); &sendSay($tchan,"\x02$irc_nick\x02 is now associated with MAL user \x02$mal_nick\x02"); };
+    if ($@) {
+	  my $st = localtime();
+	  print $runlog "[",$st->strftime(),"|*ERROR] Misha: INSERT statement failed: $@\n";
+	  &sendSay($tchan,"\x02\x0304::\x0F \x02うっうぅ~！\x02 \x02\x0304::\x0F My databases be a-derpin'; please don't use this command until the problem has been fixed. \x02\x0304::\x0F")
+	}
+}
 
 sub cleanup {
  my $data =  shift;
@@ -1795,6 +1840,7 @@ sub spaceit {
   my $clean = shift;
   $clean =~ s/([a-z])([A-Z])/$1 $2/g;
   $clean =~ s/-(chan|sama|kun|dono|san)$//;
+  $clean =~ s/_|\||`|-/ /g;3
   $clean =~ s/_|\||`|-/ /g;
   return $clean;
 }

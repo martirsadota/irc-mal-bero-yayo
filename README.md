@@ -29,4 +29,4 @@ Visit the live instance at [#doki on Rizon](irc://irc.rizon.net/doki).
     ```
     
 ## In the pipeline
-  * `.lw` (User's last watched anime)
+  * ~~`.lw` (User's last watched anime)~~ **IMPLEMENTED! \o/**
