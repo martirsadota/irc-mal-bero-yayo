@@ -154,7 +154,7 @@ my %optssc = (
 
 # Open filehandles
 open (my $runlog,">>","$ENV{HOME}/yayoi/bero/berolog.log") or warn "Cannot open log file: $!\n";
-my $Yamaku = DBI->connect("dbi:SQLite:dbname=$ENV{HOME}/yayoi/bero/lw_nicklist.db","","",{AutoCommit => 1, RaiseError => 1, PrintError => 0});
+my $Yamaku = DBI->connect("dbi:SQLite:dbname=$ENV{HOME}/path/to/database.db","","",{AutoCommit => 1, RaiseError => 1, PrintError => 0});
 my $Shizune = $Yamaku->prepare(qq{SELECT mal_uname FROM mal_assoc WHERE irc_nick = ?});
 my $Misha = $Yamaku->prepare(qq{INSERT OR REPLACE INTO mal_assoc (irc_nick, mal_uname) VALUES (?, ?)});
 
