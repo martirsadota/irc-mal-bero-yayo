@@ -503,7 +503,9 @@ my $results;
 if ($searchtype eq 'vndb') {
 $searchtermwf =~ s/%20/+/g;
 $response = HTTP::Tiny->new()->get("http://vndb.org/v/all?sq=$searchtermwf");
-$results = &Escha($response -> {content},'vndb');
+if ($response -> {content} =~ m{<li.class..tabselected.><.*?>[^vc]\d+</a></li>}i) { $results = []; }
+elsif ($response -> {content} =~ m{<li.class..tabselected.><.*?>c\d+</a></li>}i) { $searchtype = 'vndb-char'; $results = &Escha($response -> {content},'vndb-char'); }
+else { $results = &Escha($response -> {content},'vndb'); }
 } elsif ($searchtype eq 'vndb-char') {
 $searchtermwf =~ s/%20/+/g;
 $response = HTTP::Tiny->new()->get("http://vndb.org/c/all?q=$searchtermwf&fil=");
@@ -1015,6 +1017,7 @@ sub Ayesha {
      #cleanup
      $data->{title} = &cleanup($data->{title});
      $data->{desc} = &cleanup($data->{desc});
+     $data->{dev} = &cleanup($data->{dev});
      
      $data->{desc} = ($data->{desc} eq '-') ? 'None' : $data->{desc};
      $data->{japanese} = (!defined $data->{japanese}) ? "" : "($data->{japanese}) ";
@@ -1808,6 +1811,8 @@ sub cleanup {
     $data =~ s/(<[bh]r\s*?\/?>)+/ | /g;
     $data =~ s/<(.*?)(\s+)?.*?>(.*?)<\/\g1>/$3/g;
     $data =~ s/\\(\'|\")/$1/g;
+    $data =~ s{<a\s.*?>}{}g;
+    $data =~ s{</a>}{}g;
     #$data =~ s/\s+/ /g;
     $data =~ s/ \.\.\.$/.../;
     $data =~ s/ \| $//;
