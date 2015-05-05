@@ -83,7 +83,7 @@ require DBD::SQLite;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.20.00";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.21.20";
  # QUIT message
  my $quitmsg = "";
  
@@ -1176,7 +1176,7 @@ my $mess;
 my $ct = 0;
 my $stahp = 0;
 
-#print $blah,"\n\n" if $test;
+print $blah,"\n\n" if $test;
 
 #$blah = decode_entities($blah);
 
@@ -1452,7 +1452,11 @@ elsif ($searchtype eq 'anime') {
     $mess->{id} = $1;
   }
   
-  if ($blah =~ m{.*<h2>Synopsis</h2>(.*?)</td>}s) {
+  if ($blah =~ m{
+                \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
+                (.*?)
+                 </div>.?</div></div></td>
+               }six) {
     $mess->{synopsis} = $1;
   }
   
@@ -1529,7 +1533,11 @@ elsif ($searchtype eq 'manga') {
     $mess->{id} = $1;
   }
   
-  if ($blah =~ m{.*<h2>Synopsis</h2>(.*?)</td>}s) {
+  if ($blah =~ m{
+                \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
+                (.*?)
+                 </div>.?</div></div></td>
+               }six) {
     $mess->{synopsis} = $1;
   }
   
