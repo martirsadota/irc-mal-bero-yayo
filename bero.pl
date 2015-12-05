@@ -1461,19 +1461,20 @@ elsif ($searchtype eq 'anime') {
     $mess->{synopsis} = $1;
   }
 
+  if ($blah =~ m{\s+<span.class..dark_text.>Premiered:</span>\n
+                 \s+<a.href.*>(.*)</a>\n
+                 \s+</div>\n}ix) {
+                    $mess->{season} = $1;
+                }
+
   if ($blah =~ m{<div.class..spaceit.>\n
                  \s+<span.class..dark_text.>Aired:</span>\n
                  \s+(.*)\n
                  \s+</div>\n
-                 \n
-                 \s+<div>\n
-                 \s+<span.class..dark_text.>Premiered:</span>\n
-                 \s+<a.href.*>(.*)</a>\n
-                 \s+</div>\n}ix) {
+                 }ix) {
     my %mon = ( Jan => 1, Feb => 2, Mar => 3, Apr => 4, May => 5, Jun => 6,
                 Jul => 7, Aug => 8, Sep => 9, Oct => 10, Nov => 11, Dec => 12 );
 
-    $mess->{season} = $2;
     my $crap = $1;
     if ($crap =~ /^(...)\s+(\d+),\s(\d{4}) to (...)\s+(\d+),\s(\d{4})/) {
       $mess->{start_date} = "$3-".sprintf('%02d-%02d',$mon{$1},$2);
