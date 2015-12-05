@@ -1187,7 +1187,7 @@ if ($blah =~ m/\s*<h1.*?>(.*?)<\/h1>/si) {
 
 }
 
-return [] if ($mess->{name} =~ /404 Error/i);
+return [] if ($mess->{name} =~ /404 (?:Error|Not Found)/i);
 
 #---------------- PEOPLE --------------------#
 if ($searchtype eq 'people') {
@@ -1285,25 +1285,25 @@ $mess = [];
 #---------------- CHARACTERS --------------------#
 elsif ($searchtype eq 'character') {
 $ct = 0;
-if ($mess->{name} eq 'Search Characters') {
+if ($mess->{name} eq 'Characters') {
 $mess = [];
   while ($blah =~ m{
-                    \s*<td.class..borderClass.bgColor.*?\n
-                    \s*<a.href="(/character/(\d+)/.*?)">(.*?)</a>.*?\n
-                    \s*</td>\n
-                    \s*<td.class..borderClass.bgColor.*?\n
-                    (?|\s*Anime..<a.href="/anime.*?">(.*?)</a>.*?\n
-                    (\s*<div>Manga..<a.href="/manga.*?">.*?</a>.*?\n)?|
-                    \s*<div>Manga..<a.href="/manga.*">(.*?)</a>.*?\n?)
-                    \s*</tr>
+                    \s+<td.class..borderClass.bgColor.*?>\n
+                    \s+<a.href..(?:/character/(\d+)/.*?).>(.*?)</a>.*\n
+                    \s+</td>\n
+                    \s+<td.class..borderClass.bgColor.*?
+                    (?|Anime..<a.href../anime.*?">(.*?)</a>.*?\n
+                    (?:<div>Manga..<a.href../manga.*?.>.*?</a>.*?\n)?|
+                    <div>Manga..<a.href../manga.*.>(.*?)</a>.*?\n?)
+                    \s+</tr>
                    }ixgc) {
                     $mess->[$ct] = {
-                     name => $3,
-                     url => "http://myanimelist.net$1",
-                     id => $2,
-                     shows => [$4]
-                    };
-                    $mess->[$ct]->{name} =~ s/\s+/ /g;
+                    name => $2,
+                    url => "http://myanimelist.net/character/$1",
+                    id => $1,
+                    shows => [&cleanup($3)]
+                  };
+                  $mess->[$ct]->{name} =~ s/\s+/ /g;
 
     if ($mess->[$ct]->{name} =~ m/^(.*), (.*)$/) {
        $mess->[$ct]->{name} = "$2 $1";
@@ -1829,6 +1829,7 @@ sub cleanup {
     $data =~ s/(\n|\r)+//g;
     $data =~ s/(<[bh]r\s*?\/?>)+/ | /g;
     $data =~ s/<[bi]>(.*?)<\/[bi]>/$1/g;
+    $data =~ s/<!--.*?-->/$1/g;
     $data =~ s/<(.*?)(?:\s+)?.*?>(.*?)<\/\g1>/$2/g;
     $data =~ s/\\(\'|\")/$1/g;
     $data =~ s{<a\s.*?>}{}g;
