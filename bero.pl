@@ -1499,7 +1499,7 @@ elsif ($searchtype eq 'anime') {
 
 #---------------- MANGA --------------------#
 elsif ($searchtype eq 'manga') {
-  if ($blah =~ m{<h1><div.style.*>Ranked.\#(.*)</div>(.*?)</h1>\n}) {
+  if ($blah =~ m{<div><span.*right.>Ranked.(?|\#(.*?)|(N/A))</span><h1.class.*?><span.*?name.>(.*?)</span>}) {
     $mess->{rank} = $1;
     $mess->{title} = $2;
     $mess->{title} =~ s/\s+<span.*//;
@@ -1510,15 +1510,14 @@ elsif ($searchtype eq 'manga') {
   if ($blah =~ m{\s*?<h2>Alternative.Titles</h2>.*<span.class=.dark_text.>Japanese:</span>\s?(.*)</div><br.?/>\n}i) {
     $mess->{other_titles} = { japanese => [ $1 ] };
   }
-  if ($blah =~ m{\s*?\n
-                 \s+<h2>Information</h2>\n
-                 .*\n
-                 \s+.*<span.class=.dark_text.>Type:</span>\s?(.*)</div>\n
-                 \s+.*<span.class=.dark_text.>Volumes:</span>\s?(.*)\n
-                 .*\n
-                 \s+.*<span.class=.dark_text.>Chapters:</span>\s?(.*)\n
-                 \s+</div>\n
-                 \s+.*<span.class=.dark_text.>Status:</span>\s?(.*)</div>\n
+  if ($blah =~ m{<h2>Information</h2>\n
+                 \n
+                 <div><span.class..dark_text.>Type:</span>\s?(.*)</div>\n
+                 <div.class..spaceit.><span.class..dark_text.>Volumes:</span>\s?(.*?)\n
+                 </div>\n
+                 <div><span.class..dark_text.>Chapters:</span>\s?(.*)\n
+                 </div>\n
+                 <div.class..spaceit.><span.class..dark_text.>Status:</span>\s?(.*)</div>
                  }ix) {
                    $mess->{type} = $1;
                    $mess->{volumes} = $2;
@@ -1536,7 +1535,7 @@ elsif ($searchtype eq 'manga') {
                      $mess->{genres} = \@tmp;
                    }
 
-  if ($blah =~ m{<h2>Statistics</h2><div><span.class=.dark_text.>Score:</span>\s?(.*)<sup>}) {
+  if ($blah =~ m{<span.class..dark_text.>Score:</span>\s+<span.*>(.*?)</span><sup>}) {
     $mess->{members_score} = $1;
   }
 
@@ -1545,9 +1544,9 @@ elsif ($searchtype eq 'manga') {
   }
 
   if ($blah =~ m{
-                \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
-                (.*?)
-                 </div>.?</div></div></td>
+      \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
+      (.*?)
+      <h2.style..margin-top..15px..><div.class..floatRightHeader.>
                }six) {
     $mess->{synopsis} = $1;
   }
