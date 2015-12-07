@@ -273,7 +273,6 @@ if ($deko =~ /Possible ping timeout: disconnecting./) {
 # **----- SUBROUTINES -----** #
 # Event handler subs
 sub handle_chanmsg {
- my ($me_id,$me_stype) = ($drills) ? ('c758','vndb-char') : (56807,'character');
  my ($snick,$sident,$shost,$tchan,$msg) = @_;
  if ($msg =~ /^(\.mal.*)$/i and not(grep {$_ eq $snick} (@hardban_nicks) or grep {$_ eq $shost} (@hardban_hosts))) { &trigger($snick,$1,$tchan); &resetTimeout;}
  elsif ($msg =~ /^\.lw$/i) { &detailed_info(&find_mal_nick($snick),'last-watched',$tchan); &resetTimeout; }
@@ -282,7 +281,7 @@ sub handle_chanmsg {
  elsif ($msg =~ /^\.lr -n (.*)$/i) { &detailed_info(&find_mal_nick($1),'last-read',$tchan); &resetTimeout; }
  elsif ($msg =~ /^\.lw (.*)$/i) { &detailed_info($1,'last-watched',$tchan); &resetTimeout; }
  elsif ($msg =~ /^\.lr (.*)$/i) { &detailed_info($1,'last-read',$tchan); &resetTimeout; }
- elsif ($msg =~ /^$nick(,|:) introduce yourself|^!yayointro$/i and grep { $_ eq &stripcode($shost) } (@admin_hosts) ) { &detailed_info($me_id,$me_stype,$tchan); &resetTimeout; }
+ elsif ($msg =~ /^$nick(,|:) introduce yourself|^!yayointro$/i and grep { $_ eq &stripcode($shost) } (@admin_hosts) ) { &detailed_info("56807","character",$tchan); &resetTimeout; }
  elsif ($msg =~ /^!whodid (.*)$/i and not(grep {$_ eq $snick} (@hardban_nicks) or grep {$_ eq $shost} (@hardban_hosts))) { &whodid($tchan,$snick,$1); &resetTimeout; }
  elsif ($msg =~ /^$nick(,|:) do you know ((of )?me|who (am I|I am))+\?$/i) { &mal_search ($snick, $tchan, &spaceit($snick), 'character', 'search', 'whoami'); }
  elsif ($msg =~ /^\.vndb -c (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'info', ($2-1)); }
@@ -1191,9 +1190,9 @@ return [] if ($mess->{name} =~ /404 (?:Error|Not Found)/i);
 
 #---------------- PEOPLE --------------------#
 if ($searchtype eq 'people') {
-if ($mess->{name} eq 'Search People') {
+if ($mess->{name} eq 'People') {
 $mess = [];
-  while ($blah =~ m{\s*<td class="borderClass"><a href="(/people/(\d+)/.*?)">(.*?)</a></td>\n}igc) {
+  while ($blah =~ m{\s*<td class="borderClass"><a href="(/people/(\d+)/.*?)">(.*?)</a>(?:<br\s?/><small>.*</small>)?</td>\n}igc) {
     $mess->[$ct] = {
        name => $3,
        url => "http://myanimelist.net$1",
@@ -1210,10 +1209,10 @@ $mess = [];
   if ($blah =~ m{<li><a.href="(/people/(\d+)/.*?)".class="horiznav_active">Details</a></li>}i) {
     $mess->{url} = "http://myanimelist.net$1";
     $mess->{id} = $2;
-  }
+}
 
   if ($blah =~ m/\s*.div.class..spaceit_pad...span.class..dark_text..Given.*?:..span.\s*(.*?)..div.\n
-                 (\s*.span.class..dark_text..Family.*?:..span.\s*(.*).div.class..spaceit_pad...span.class..dark_text..Birthday:..span.\s*(.*?)..div.)?
+                 (\s*.span.class..dark_text..Family.*?:..span.\s*(.*?).div.class..spaceit_pad)?
                /ix) {
                $mess->{jp_name} = "$3$1";
                $mess->{dob} = $4;
@@ -1227,57 +1226,64 @@ $mess = [];
       $mess->{www} = $1;
     }
 
+
   if ($blah =~ m{
-                 \s*<.div><div.class..normal_header.><.*Add.Voice.Actor.Role</a></div>Voice.Acting.Roles</div><table.*?>\n
-                 (.*?)\n
-  		          \s*</table>
-  		          }six) {
-  		           $blah = $1;
-  		          } elsif ($blah =~ m{
-                                    \s*<div.class..normal_header.><.*Add.Position</a></span>Anime.Staff.Positions</div><table.*?>\n
-                                    (.*?)\n
-  		                             \s*</table>
-  		                             }six) {
-  		                             $blah = $1;
-  		                             } else {
-  		                               $stahp = 1;
-  		                             }
-  if (!$stahp) {
-    while ($blah =~ m{
-                    \s*<td.valign="top".class="borderClass"><a.href.*?>(.*?)</a>.*?\n
-                    .*?\n
-                    \s*<td.valign="top".class="borderClass".align="right".nowrap><a.href.*?>(.*?)</a>......<div.class="spaceit_pad">(.*?)......</div></td>\n
-                   }ixgc) {
-                     $mess->{chars}->[$ct] = {
-                      anime => $1,
-                      name => $2,
-                      role => $3
-                     };
+                   <div.class..normal_header.><.*Add.Voice.Actor.Role</a></div>Voice.Acting.Roles</div><table.*?>\n
+                   (.*?)\n
+    		          \s*</table>
+    		          }six) {
+    		           $blah = $1;
+    		          } elsif ($blah =~ m{
+                                      \s*<div.class..normal_header.><.*Add.Position</a></span>Anime.Staff.Positions</div><table.*?>\n
+                                      (.*?)\n
+    		                             \s*</table>
+    		                             }six) {
+    		                             $blah = $1;
+    		                             } else {
+    		                               $stahp = 1;
+    		                             }
 
-                    if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
-                      $mess->{chars}->[$ct]->{name} = "$2 $1";
-                    }
-
-                    $ct++;
-    }
+ if (!$stahp) {
     $ct = 0;
     while ($blah =~ m{
-                     \s*<td.valign.*?class.*?><a.href.*>(.*?)</a>.*?\n
-                     \s*<a.href.*<small>(.*?)</small>
+                        \s+<tr>\n
+                        .*\n
+                        \s+<td.*><a.*>(.*)</a><div.*>\n
+                        .*\n
+                        \s+</div></td>\n
+                        \s+<td.*><a.*>(.*)</a.*<div.*>(.*?)(?:&nbsp;)?</div></td>\n
                      }ixgc) {
-                     $mess->{chars}->[$ct] = {
-                      anime => $1,
-                      name => $2,
-                      role => ''
-                     };
+                       $mess->{chars}->[$ct] = {
+                        anime => $1,
+                        name => $2,
+                        role => $3
+                       };
+
+                      if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
+                        $mess->{chars}->[$ct]->{name} = "$2 $1";
+                      }
+
+                      $ct++;
+      }
+    $ct = 0;
+    while ($blah =~ m{
+                        \s+<td.valign.*?class.*?><a.href.*>(.*?)</a>.*?\n
+                        \s*<a.href.*\n
+                        \s+<small>(.*?)</small>
+                        }ixgc) {
+                        $mess->{chars}->[$ct] = {
+                         anime => $1,
+                         name => $2,
+                         role => ''
+                        };
 
 
-                    if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
-                      $mess->{chars}->[$ct]->{name} = "$2 $1";
-                    }
+                       if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
+                         $mess->{chars}->[$ct]->{name} = "$2 $1";
+                       }
 
-                    $ct++;
-    }
+                       $ct++;
+       }
   }
   $mess = [$mess];
 }
@@ -1866,7 +1872,7 @@ sub spaceit {
   my $clean = shift;
   $clean =~ s/([a-z])([A-Z])/$1 $2/g;
   $clean =~ s/-(chan|sama|kun|dono|san)$//;
-  $clean =~ s/_|\||`|-/ /g;3
+  $clean =~ s/_|\||`|-/ /g;
   $clean =~ s/_|\||`|-/ /g;
   return $clean;
 }
