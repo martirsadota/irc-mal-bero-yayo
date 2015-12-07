@@ -78,26 +78,26 @@ require DBD::SQLite;
 # Channels to join
  my @channels = (
   );
- 
+
 # Other Bot Info
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.21.20";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.5.00";
  # QUIT message
  my $quitmsg = "";
- 
+
 # Admin & HL Options
  # Hosts of bot admins
  my @admin_hosts = (
  );
- 
+
  my @hardban_nicks = (
  );
- 
+
  my @hardban_hosts = (
  );
- 
+
  # Time to wait for a server response before declaring a ping timeout (in seconds)
  my $pingTimeout = 240;
  # Interval between reconnect attempts (in seconds)
@@ -164,15 +164,15 @@ eval {
 local $SIG{ALRM} = sub {
   die "Possible ping timeout: disconnecting.\n";
  };
- 
+
 while (1) {
- 
+
 # Connect to the IRC server.
 $sock = new IO::Socket::INET(PeerAddr => $server,
                                   PeerPort => $port,
                                     Proto => 'tcp')
-                                      or die "[(" . &timestamp . ")|*ERROR] Can\'t connect to the server: $!."; 
- 
+                                      or die "[(" . &timestamp . ")|*ERROR] Can\'t connect to the server: $!.";
+
 # Log on to the server.
 &sendRaw("NICK $nick");
 &sendRaw("USER $ident blah blah :$rname");
@@ -229,7 +229,7 @@ while (my $input = <$sock>) {
            } else {
             }
          }
-       } 
+       }
   }
 
   $sock -> close if defined ($sock);
@@ -258,7 +258,7 @@ if ($deko =~ /Possible ping timeout: disconnecting./) {
     } else {
       nanosleep(&nss(10));
       goto MAINLOOP;
-    } 
+    }
    } else {
      my $st = localtime();
      print $runlog "[",$st->strftime(),"|*ERROR] Eval block died; bot disconnected: $deko\n";
@@ -273,7 +273,6 @@ if ($deko =~ /Possible ping timeout: disconnecting./) {
 # **----- SUBROUTINES -----** #
 # Event handler subs
 sub handle_chanmsg {
- my ($me_id,$me_stype) = ($drills) ? ('c758','vndb-char') : (56807,'character');
  my ($snick,$sident,$shost,$tchan,$msg) = @_;
  if ($msg =~ /^(\.mal.*)$/i and not(grep {$_ eq $snick} (@hardban_nicks) or grep {$_ eq $shost} (@hardban_hosts))) { &trigger($snick,$1,$tchan); &resetTimeout;}
  elsif ($msg =~ /^\.lw$/i) { &detailed_info(&find_mal_nick($snick),'last-watched',$tchan); &resetTimeout; }
@@ -282,7 +281,7 @@ sub handle_chanmsg {
  elsif ($msg =~ /^\.lr -n (.*)$/i) { &detailed_info(&find_mal_nick($1),'last-read',$tchan); &resetTimeout; }
  elsif ($msg =~ /^\.lw (.*)$/i) { &detailed_info($1,'last-watched',$tchan); &resetTimeout; }
  elsif ($msg =~ /^\.lr (.*)$/i) { &detailed_info($1,'last-read',$tchan); &resetTimeout; }
- elsif ($msg =~ /^$nick(,|:) introduce yourself|^!yayointro$/i and grep { $_ eq &stripcode($shost) } (@admin_hosts) ) { &detailed_info($me_id,$me_stype,$tchan); &resetTimeout; }
+ elsif ($msg =~ /^$nick(,|:) introduce yourself|^!yayointro$/i and grep { $_ eq &stripcode($shost) } (@admin_hosts) ) { &detailed_info("56807","character",$tchan); &resetTimeout; }
  elsif ($msg =~ /^!whodid (.*)$/i and not(grep {$_ eq $snick} (@hardban_nicks) or grep {$_ eq $shost} (@hardban_hosts))) { &whodid($tchan,$snick,$1); &resetTimeout; }
  elsif ($msg =~ /^$nick(,|:) do you know ((of )?me|who (am I|I am))+\?$/i) { &mal_search ($snick, $tchan, &spaceit($snick), 'character', 'search', 'whoami'); }
  elsif ($msg =~ /^\.vndb -c (.*?) \/(\d+)$/i) { &mal_search ($snick, $tchan, $1, 'vndb-char', 'info', ($2-1)); }
@@ -308,7 +307,7 @@ sub handle_pm {
 sub handle_notice {
  my ($snick,$sident,$shost,$msg) = @_;
 }
- 
+
 sub handle_ctcp {
   my ($snick,$sident,$shost,$type) = @_;
   if (uc($type) eq "VERSION") {
@@ -357,7 +356,7 @@ sub handle_srvmsg {
  }
  elsif ($numeric eq "474" && $msg =~ /(\#.*) :Cannot join/i) {
    # Banned
-   
+
  }
  elsif ($numeric eq "366" and $msg =~ /(\#.*?) :End/) {
    # /NAMES list end
@@ -367,7 +366,7 @@ sub handle_srvmsg {
 sub handle_join {
  my ($snick,$sident,$host,$tchan) = @_;
  if ($snick eq $nick) {
- 
+
 if (not defined($floodprot->{$tchan})) {
  $floodprot->{$tchan} = {
    mal    => 0
@@ -382,7 +381,7 @@ if (not defined($interval->{$tchan})) {
 
  }
 } # sub handle_join END
- 
+
 sub handle_kick {
  my ($snick,$sident,$host,$tchan,$tnick,$reason) = @_;
  if ($tnick eq $nick) {
@@ -464,7 +463,7 @@ if ($response->{success}) {
 } else {
   return undef;
 }
-                   
+
 return ($title,$info_id,\@mess);
 }
 
@@ -485,7 +484,7 @@ sub trigger {
    elsif  ($msg =~ /^\.mal (-a )?(.*)$/i)          { &mal_search ($tnick, $chan, $2, 'anime', 'search', ''); }
   }
  }
- 
+
 sub mal_search {
 my ($tnick, $chan, $searchterm, $searchtype, $flag, $num) = @_;
 
@@ -536,14 +535,14 @@ my $spage = ($searchtype eq 'vndb') ? "http://vndb.org/v/all?sq=$searchtermwf" :
   foreach my $i (@$results) {
 
     my $data = &Ayesha ($i, $searchtype, $ct, scalar(@$results));
-                    
+
      if ($flag eq "search" or ($flag eq "info" and scalar(@$results) == 1)) {
        # Xchat:prnt("\x0303*DEBUG\x0F\t\$ct is: $ct");
        if (scalar(@$results) == 1) {
          # 1 show found; print complete details
             if (grep { $_ eq $searchtype } ('anime','manga','character','vndb-char')) {
               &detailed_info ($i->{id}, $searchtype, $chan);
-            } else {              
+            } else {
               &sendSay($chan,"$data->{info_line_1}");
               &sendSay($chan,"$data->{info_line_2}") if defined($data->{info_line_2});
             }
@@ -592,7 +591,7 @@ if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga','last-
    #print "DEBUG: Grabbing info via API failed; trying via scrape...\n" if ($test);
    my $searchkey = (grep { $_ eq $searchtype } ('profile-manga','last-watched','last-read')) ? 'profile' : $searchtype;
    eval { $data = &Ayesha(&Totori (HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/$searchkey/$info_id")->{content}, $searchtype), $searchtype, $info_id, 1); };
-   if ($@) { 
+   if ($@) {
      $err = 1;
      print "$@\n" if $test;
      &sendSay($chan,"\x02\x0304::\x0F \x02うっうぅ~！\x02 \x02\x0304::\x0F My info servers be a-derpin'; please don't use this command until the problem has been fixed. \x02\x0304::\x0F") unless ($parse);
@@ -600,7 +599,7 @@ if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga','last-
   #}
 } elsif (grep { $_ eq $searchtype } ('vndb','vndb-char')) {
   $data = &Ayesha(&Escha(HTTP::Tiny->new->get("http://vndb.org/$info_id")->{content},$searchtype)->[0], $searchtype, $info_id, 1);
-  
+
 } else {
   $response = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/$searchtype/$info_id");
   $data = &Ayesha(&Totori($response->{content}, $searchtype)->[0], $searchtype, $info_id, 1);
@@ -618,7 +617,7 @@ if (grep { $_ eq $searchtype } ('anime','manga','profile','profile-manga','last-
     } else {
      &sendSay($chan,"\x02\x0304::\x0F \x02うっうぅ~！\x02 \x02\x0304::\x0F I can't find a profile with that username. \x02\x0304::\x0F") if ($searchtype eq 'profile' or $searchtype eq 'profile-manga' and !$err);
     }
-    
+
   $floodprot->{$chan}->{mal} = &now;
 }
 
@@ -649,54 +648,53 @@ my $tnick = shift;
 sub Ayesha {
  # ** Ayesha-chan, the Alchemist of Dusk
  # ** The Grand Data Formatter
- 
+
  my ($data, $type, $ct, $total) = @_;
  print Dumper($data) if $test;
 
  my @months = ("","January","February","March","April","May","June","July","August","September","October","November","December");
  my $sep = "\x02\x0303::\x0F";
  my $mal = "\x02\x0300,12 MyAnimeList \x0F";
- 
+
 # -------------- ANIME -------------------#
  if ($type eq 'anime') {
     # Set dates
     if (defined($data->{start_date}) and $data->{start_date} =~ /(\d\d\d\d)-(\d\d)-(\d\d).*/) { $data->{start_date} = "$months[$2] $3, $1"; }
     if (defined($data->{end_date}) and $data->{end_date} =~ /(\d\d\d\d)-(\d\d)-(\d\d).*/) { $data->{end_date} = "$months[$2] $3, $1"; }
-    
+
     if    (!defined($data->{start_date}) and !defined($data->{end_date})) { $data->{air_dates} = "\x02Airing\x02 ?"; }
     elsif (lc($data->{status}) eq 'not yet aired' and defined($data->{start_date})) { $data->{air_dates} = "\x02Airing\x02 $data->{start_date}"; }
     elsif ($data->{status} =~ /^(currently )?airing/i and defined($data->{end_date})) { $data->{air_dates} = "\x02Airing\x02 $data->{start_date} to $data->{end_date}"; }
     elsif (!defined($data->{end_date})) { $data->{air_dates} = "\x02Started Airing\x02 $data->{start_date}"; }
     elsif ($data->{start_date} eq $data->{end_date}) { $data->{air_dates} = "\x02Aired\x02 $data->{end_date}"; }
     else  { $data->{air_dates} = "\x02Aired\x02 $data->{start_date} to $data->{end_date}"; }
-    
+
     $data->{episodes} = "?" if (!defined ($data->{episodes}) or $data->{episodes} == 0);
     $data->{rank} = (defined ($data->{rank})) ? " (Ranked #$data->{rank})" : '';
-	$data->{producers} = (defined ($data->{producers})) ? $data->{producers}->[0] : 'Unknown';
-    
+    $data->{members_score} = (lc($data->{members_score}) eq 'n/a') ? "?" : "$data->{members_score}/10";
+    $data->{season} = (defined ($data->{season}) and $data->{season} ne "") ? " ($data->{season})" : "";
+
     # clean up
     $data->{title} = &cleanup($data->{title});
     $data->{synopsis} = &cleanup($data->{synopsis});
-                
+
     # trim the synopsis
-    # Xchat:prnt("\x0303*DEBUG\x0F\tLength of \$data->{synopsis} is: " . length($data->{synopsis}));
     if (length ($data->{synopsis}) > 325) {
      $data->{synopsis} =~ s/ ...$//;
      $data->{synopsis} =~ s/(.{325}).*/$1/;
      $data->{synopsis} = "$data->{synopsis}...";
     }
-     
+
     $data->{status} =~ s/\b(\w)/\u$1/g if (defined($data->{status})) or $data->{status} = "N/A";
-    
-    # Xchat:prnt("\x0303*DEBUG\x0F\t\$data->{genres} is: $data->{genres}");
+
     if (ref $data->{genres} eq 'ARRAY' && scalar (@{$data->{genres}}) > 0) { $data->{genres} = join (', ',@{$data->{genres}}); }
     else { $data->{genres} = "--"; }
-     
+
     if (defined($data->{other_titles} -> {japanese} -> [0])) { $data->{jp_title} = " (" . $data->{other_titles} -> {japanese} -> [0] . ")"; }
     else { $data->{jp_title} = ""; }
-    
+
     $data = {
-      info_line_1 => "$sep [Anime] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Episodes\x02 $data->{episodes} $sep $data->{air_dates} $sep \x02Members' Score\x02 $data->{members_score}/10$data->{rank} $sep \x02Genres\x02 $data->{genres} $sep \x02Classification\x02 $data->{classification} $sep",
+      info_line_1 => "$sep [Anime] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Episodes\x02 $data->{episodes} $sep $data->{air_dates}$data->{season} $sep \x02Members' Score\x02 $data->{members_score}$data->{rank} $sep \x02Genres\x02 $data->{genres} $sep \x02Classification\x02 $data->{classification} $sep",
       info_line_2 => "$sep \x02Synopsis\x02 $data->{synopsis} $sep \x02Link\x02 http://myanimelist.net/anime/$data->{id} $sep",
       result_line => "$sep [" . ($ct + 1) . "/" . $total . "][Anime] \x02$data->{title}\x02 $sep \x02Type\x02 $data->{type} $sep \x02Members' Score\x02 $data->{members_score}/10 $sep \x02Episodes\x02 $data->{episodes} $sep \x02Link\x02 http://myanimelist.net/anime/$data->{id} $sep",
 	  parse_line  => "$mal $sep [Anime] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Episodes\x02 $data->{episodes} $sep \x02Genres\x02 $data->{genres} $sep \x02Members' Score\x02 $data->{members_score}/10$data->{rank} $sep"
@@ -707,11 +705,11 @@ sub Ayesha {
 # -------------- MANGA -------------------#
    elsif ($type eq 'manga') {
     $sep = "\x02\x0302::\x0F";
-     
+
     # clean up
     $data->{title} = &cleanup($data->{title});
     $data->{synopsis} = &cleanup($data->{synopsis});
-    
+
     # trim the synopsis
     # Xchat:prnt("\x0303*DEBUG\x0F\tLength of \$data->{synopsis} is: " . length($data->{synopsis}));
     if (length ($data->{synopsis}) > 325) {
@@ -721,34 +719,34 @@ sub Ayesha {
     }
 
     $data->{rank} = (defined ($data->{rank})) ? " (Ranked #$data->{rank})" : '';
-    
+
     # set some stats
     $data->{volumes} = "?" if (!defined ($data->{volumes}) or $data->{volumes} == 0);
     $data->{chapters} = "?" if (!defined ($data->{chapters}) or $data->{chapters} == 0);
-    
+
     # Xchat:prnt("\x0303*DEBUG\x0F\t\$data->{genres} is: $data->{genres}");
     if (ref $data->{genres} eq 'ARRAY' && scalar (@{$data->{genres}}) > 0) { $data->{genres} = join (', ',@{$data->{genres}}); }
     else { $data->{genres} = "--"; }
-    
+
     if (defined($data->{other_titles} -> {japanese} -> [0])) { $data->{jp_title} = " (" . $data->{other_titles} -> {japanese} -> [0] . ")"; }
     else { $data->{jp_title} = ""; }
-    
+
     $data->{status} =~ s/\b(\w)/\u$1/g if (defined($data->{status})) or $data->{status} = "N/A";
-     
+
      $data = {
       info_line_1 => "$sep [Manga] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Volumes\x02 $data->{volumes} $sep \x02Chapters\x02 $data->{chapters} $sep \x02Members' Score\x02 $data->{members_score}/10$data->{rank} $sep \x02Genres\x02 $data->{genres} $sep",
       info_line_2 => "$sep \x02Synopsis\x02 $data->{synopsis} $sep \x02Link\x02 http://myanimelist.net/$type/$data->{id} $sep",
       result_line => "$sep [" . ($ct + 1) . "/" . $total . "][Manga] \x02$data->{title}\x02 $sep \x02Type\x02 $data->{type} $sep \x02Members' Score\x02 $data->{members_score}/10 $sep \x02Volumes\x02 $data->{volumes} $sep \x02Chapters\x02 $data->{chapters} $sep \x02Link\x02 http://myanimelist.net/$type/$data->{id} $sep",
 	  parse_line  => "$mal $sep [Manga] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Genres\x02 $data->{genres} $sep \x02Members' Score\x02 $data->{members_score}/10$data->{rank} $sep"
      };
-     
+
     return $data;
     }
 # -------------- USERS -------------------#
    elsif (grep { $_ eq $type } ('profile','last-watched')) {
      $sep = "\x02\x0306::\x0F";
      my $now = localtime;
-     
+
      # grab some extra data
      my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rwe&u=$ct")->{content};
 	 # print $recent,"\n" if $test;
@@ -769,7 +767,7 @@ sub Ayesha {
 		     undef $recent;
 		    }
 
-     if (!defined($data->{recent}->{title})) { 
+     if (!defined($data->{recent}->{title})) {
          $data->{recent} = "$sep";
      } else {
        # clean the title
@@ -782,11 +780,12 @@ sub Ayesha {
 	   $data->{lwr_line} = "Episode \x02$data->{recent}->{currEp}\x02 of \x02$data->{recent}->{title}\x02, $data->{recent}->{date} ago.";
        $data->{recent} = "$sep \x02Recent Anime\x02 $data->{recent}->{title} $data->{recent}->{description} ($data->{recent}->{date} ago) $sep";
       }
-	  
+
      # pre-format
      if (!defined ($data->{anime_stats})) {
        return undef;
      } else {
+     $data->{anime_stats}->{episodes} = ($data->{anime_stats}->{episodes} eq '1') ? "$data->{anime_stats}->{episodes} episode" : "$data->{anime_stats}->{episodes} episodes";
      $data->{anime_stats} = join ('',
         "\x02Anime List Entries\x02 ",
         $data->{anime_stats}->{total_entries}, ' [',
@@ -799,23 +798,25 @@ sub Ayesha {
          ), ']',
         " $sep \x02Time Spent Watching\x02 ",
         $data->{anime_stats}->{time_days},
-        " days"
+        " days (",
+        $data->{anime_stats}->{episodes},
+        ")"
        );
 	  }
-      
+
       $data = {
         info_line_1 => "$sep [MAL] \x02$ct\x02 $sep \x02Profile Link\x02 http://myanimelist.net/profile/$ct $sep \x02Anime List Link\x02 http://myanimelist.net/animelist/$ct $sep $data->{anime_stats} $data->{recent}",
         info_line_2 => "",
 		lwr_line => "$sep [MAL] \x02$ct\x02 last watched $data->{lwr_line} $sep (http://myanimelist.net/animelist/$ct) $sep"
        };
-       
+
       return $data;
     }
 # ------------- USERS - MANGA ----------------#
    elsif (grep { $_ eq $type } ('profile-manga','last-read')) {
 	 $sep = "\x02\x0305::\x0F";
      my $now = localtime;
-     
+
      # grab some extra data
      my $recent = HTTP::Tiny->new(%optssc)->get("http://myanimelist.net/rss.php?type=rrm&u=$ct")->{content};
 	 # print $recent,"\n" if $test;
@@ -836,7 +837,7 @@ sub Ayesha {
 		     undef $recent;
 		    }
 
-     if (!defined($data->{recent_manga}->{title})) { 
+     if (!defined($data->{recent_manga}->{title})) {
          $data->{recent_manga} = "$sep";
      } else {
        # clean the title
@@ -850,11 +851,13 @@ sub Ayesha {
 	   $data->{lwr_line} = "Chapter \x02$data->{recent_manga}->{currChap}\x02 of \x02$data->{recent_manga}->{title}\x02, $data->{recent_manga}->{date} ago.";
        $data->{recent_manga} = "$sep \x02Recent Manga\x02 $data->{recent_manga}->{title} $data->{recent_manga}->{description} ($data->{recent_manga}->{date} ago) $sep";
       }
-     
+
      # pre-format
      if (!defined ($data->{manga_stats})) {
        return undef;
      } else {
+     $data->{manga_stats}->{chapters} = ($data->{manga_stats}->{chapters} eq '1') ? "$data->{manga_stats}->{chapters} chapter" : "$data->{manga_stats}->{chapters} chapters";
+     $data->{manga_stats}->{volumes} = ($data->{manga_stats}->{volumes} eq '1') ? "$data->{manga_stats}->{volumes} volume" : "$data->{manga_stats}->{volumes} volumes";
      $data->{manga_stats} = join ('',
         "\x02Manga List Entries\x02 ",
         $data->{manga_stats}->{total_entries}, ' [',
@@ -867,16 +870,18 @@ sub Ayesha {
          ), ']',
         " $sep \x02Time Spent Reading\x02 ",
         $data->{manga_stats}->{time_days},
-        " days"
+        " days (",
+        $data->{manga_stats}->{volumes}, ', ',
+        $data->{manga_stats}->{chapters}, ')'
        );
       }
-      
+
 	  $data = {
         info_line_1 => "$sep [MAL] \x02$ct\x02 $sep \x02Profile Link\x02 http://myanimelist.net/profile/$ct $sep \x02Manga List Link\x02 http://myanimelist.net/mangalist/$ct $sep $data->{manga_stats} $data->{recent_manga}",
         info_line_2 => "",
 		lwr_line => "$sep [MAL] \x02$ct\x02 last read $data->{lwr_line} $sep (http://myanimelist.net/mangalist/$ct) $sep"
        };
-       
+
       return $data;
     }
 # -------------- PEOPLE ------------------#
@@ -896,7 +901,7 @@ sub Ayesha {
        my $roles = (scalar(@{$data->{chars}}) == 1) ? "role" : "roles";
 	   my $smp_i = &eggroll((scalar(@{$data->{chars}}) - 1));
 	   $data->{smp_r} = $data->{chars}->[$smp_i]->{name} . " (" . $data->{chars}->[$smp_i]->{anime} . ")";
-       
+
        if (scalar(@{$data->{chars}}) <= 3) {
          foreach my $i (@{$data->{chars}}) {
            push(@tmp,"$i->{name} ($i->{anime})");
@@ -916,7 +921,7 @@ sub Ayesha {
           } while (grep { $_ == $tmp } @roles);
           $roles[$c_t] = $tmp;
           $c_t++;
-         }      
+         }
        #pre-format
         $data->{chars} = join('',
                           "\x02Example Roles\x02 ",
@@ -958,19 +963,19 @@ sub Ayesha {
      }
      # clean up the info
      $data->{info} = &cleanup($data->{info});
-    
+
      # trim the info
      if (length ($data->{info}) > 200) {
       $data->{info} =~ s/ ...$//;
       $data->{info} =~ s/(.{200}).*/$1/;
       $data->{info} = "$data->{info}...";
      }
-     
+
      # grab appearances
      my @roles;
      my $c_t = 0;
      my $sss = (scalar(@{$data->{shows}}) == 1) ? '' : 's';
-       
+
      if (scalar(@{$data->{shows}}) <= 2) {
      #pre-format
       $data->{shows} = join('',
@@ -987,7 +992,7 @@ sub Ayesha {
         } while (grep { $_ == $tmp } @roles);
         $roles[$c_t] = $tmp;
         $c_t++;
-       }      
+       }
      #pre-format
       $data->{shows} = join('',
                         "\x02Anime/Manga Appearances\x02 ",
@@ -1018,20 +1023,20 @@ sub Ayesha {
      $data->{title} = &cleanup($data->{title});
      $data->{desc} = &cleanup($data->{desc});
      $data->{dev} = &cleanup($data->{dev});
-     
+
      $data->{desc} = ($data->{desc} eq '-') ? 'None' : $data->{desc};
      $data->{japanese} = (!defined $data->{japanese}) ? "" : "($data->{japanese}) ";
      $data->{dev} = (!defined $data->{dev}) ? "" : "$sep \x02Developer\x02 $data->{dev} ";
      $data->{nsfw} = ($data->{nsfw}) ? "\x02\x0304[NSFW]\x0F $sep" : "$sep";
 	 $data->{len} = (defined $data->{len}) ? decode_entities($data->{len}) : "?";
-     
+
      #trim the description
      if (length ($data->{desc}) > 325) {
      $data->{desc} =~ s/ ...$//;
      $data->{desc} =~ s/(.{325}).*/$1/;
      $data->{desc} = "$data->{desc}...";
      }
-     
+
      #prettify platforms line
      if (defined($data->{rels})) {
        if (scalar(@{$data->{rels}}) > 3) {
@@ -1042,7 +1047,7 @@ sub Ayesha {
      } else {
        $data->{rels} = ["Unknown"];
      }
-     
+
      #final output
      $data = {
          info_line_1 => "$sep [VNDB] \x02$data->{title}\x02 $data->{japanese}$data->{dev}$sep \x02Released for\x02 $data->{rels} $sep \x02Length\x02 $data->{len} $sep \x02Rating\x02 $data->{score}/10 (Ranked \#$data->{rank}) $data->{nsfw}",
@@ -1063,17 +1068,17 @@ sub Ayesha {
      #cleanup
      $data->{title} = &cleanup($data->{name});
      $data->{desc} = &cleanup($data->{desc});
-     
+
      $data->{desc} = ($data->{desc} eq '-') ? 'None' : $data->{desc};
      $data->{jp_name} = (!defined $data->{jp_name}) ? "" : "($data->{jp_name}) ";
-     
+
      #trim the description
      if (length ($data->{desc}) > 325) {
      $data->{desc} =~ s/ ...$//;
      $data->{desc} =~ s/(.{325}).*/$1/;
      $data->{desc} = "$data->{desc}...";
      }
-     
+
      #final output
      $data = {
          info_line_1 => "$sep [VNDB/Character] \x02$data->{name}\x02 $data->{jp_name}$sep \x02Appears in\x02 $data->{vn} $sep",
@@ -1181,44 +1186,44 @@ print $blah,"\n\n" if $test;
 #$blah = decode_entities($blah);
 
 #Common factor
-if ($blah =~ m/\s*<h1>(.*?)<\/h1>/si) {
+if ($blah =~ m/\s*<h1.*?>(.*?)<\/h1>/si) {
   $mess->{name} = $1;
   $mess->{name} =~ s/\s+/ /g;
   $mess->{name} =~ s/^\s+|\s+$//g;
-  
+
 }
 
-return [] if ($mess->{name} =~ /404 Error/i);
+return [] if ($mess->{name} =~ /404 (?:Error|Not Found)/i);
 
 #---------------- PEOPLE --------------------#
 if ($searchtype eq 'people') {
-if ($mess->{name} eq 'Search People') {
+if ($mess->{name} eq 'People') {
 $mess = [];
-  while ($blah =~ m{\s*<td class="borderClass"><a href="(/people/(\d+)/.*?)">(.*?)</a></td>\n}igc) {
+  while ($blah =~ m{\s*<td class="borderClass"><a href="(/people/(\d+)/.*?)">(.*?)</a>(?:<br\s?/><small>.*</small>)?</td>\n}igc) {
     $mess->[$ct] = {
        name => $3,
        url => "http://myanimelist.net$1",
        id => $2
      };
-    
+
     if ($mess->[$ct]->{name} =~ /^(.*), (.*)$/) {
        $mess->[$ct]->{name} = "$2 $1";
      }
-     
+
     $ct++;
   }
 } else {
   if ($blah =~ m{<li><a.href="(/people/(\d+)/.*?)".class="horiznav_active">Details</a></li>}i) {
     $mess->{url} = "http://myanimelist.net$1";
     $mess->{id} = $2;
-  }
+}
 
   if ($blah =~ m/\s*.div.class..spaceit_pad...span.class..dark_text..Given.*?:..span.\s*(.*?)..div.\n
-                 (\s*.span.class..dark_text..Family.*?:..span.\s*(.*).div.class..spaceit_pad...span.class..dark_text..Birthday:..span.\s*(.*?)..div.)?
+                 (\s*.span.class..dark_text..Family.*?:..span.\s*(.*?).div.class..spaceit_pad)?
                /ix) {
                $mess->{jp_name} = "$3$1";
                $mess->{dob} = $4;
-               
+
               if ($mess->{name} =~ m/^(.*), (.*)$/) {
               $mess->{name} = "$2 $1";
               }
@@ -1227,58 +1232,65 @@ $mess = [];
   if ($blah =~ m{.span.class..dark_text..Website...span...a.href..(.*?).>}i) {
       $mess->{www} = $1;
     }
-              
+
+
   if ($blah =~ m{
-                 \s*<.div><div.class..normal_header.><.*Add.Voice.Actor.Role</a></div>Voice.Acting.Roles</div><table.*?>\n
-                 (.*?)\n
-  		          \s*</table>
-  		          }six) {
-  		           $blah = $1;
-  		          } elsif ($blah =~ m{
-                                    \s*<div.class..normal_header.><.*Add.Position</a></span>Anime.Staff.Positions</div><table.*?>\n
-                                    (.*?)\n
-  		                             \s*</table>
-  		                             }six) {
-  		                             $blah = $1;
-  		                             } else {
-  		                               $stahp = 1;
-  		                             }
-  if (!$stahp) {		           
-    while ($blah =~ m{
-                    \s*<td.valign="top".class="borderClass"><a.href.*?>(.*?)</a>.*?\n
-                    .*?\n
-                    \s*<td.valign="top".class="borderClass".align="right".nowrap><a.href.*?>(.*?)</a>......<div.class="spaceit_pad">(.*?)......</div></td>\n
-                   }ixgc) {
-                     $mess->{chars}->[$ct] = {
-                      anime => $1,
-                      name => $2,
-                      role => $3
-                     };
+                   <div.class..normal_header.><.*Add.Voice.Actor.Role</a></div>Voice.Acting.Roles</div><table.*?>\n
+                   (.*?)\n
+    		          \s*</table>
+    		          }six) {
+    		           $blah = $1;
+    		          } elsif ($blah =~ m{
+                                      \s*<div.class..normal_header.><.*Add.Position</a></span>Anime.Staff.Positions</div><table.*?>\n
+                                      (.*?)\n
+    		                             \s*</table>
+    		                             }six) {
+    		                             $blah = $1;
+    		                             } else {
+    		                               $stahp = 1;
+    		                             }
 
-                    if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
-                      $mess->{chars}->[$ct]->{name} = "$2 $1";
-                    }
-
-                    $ct++;
-    }
+ if (!$stahp) {
     $ct = 0;
     while ($blah =~ m{
-                     \s*<td.valign.*?class.*?><a.href.*>(.*?)</a>.*?\n
-                     \s*<a.href.*<small>(.*?)</small>
+                        \s+<tr>\n
+                        .*\n
+                        \s+<td.*><a.*>(.*)</a><div.*>\n
+                        .*\n
+                        \s+</div></td>\n
+                        \s+<td.*><a.*>(.*)</a.*<div.*>(.*?)(?:&nbsp;)?</div></td>\n
                      }ixgc) {
-                     $mess->{chars}->[$ct] = {
-                      anime => $1,
-                      name => $2,
-                      role => ''
-                     };
-                     
+                       $mess->{chars}->[$ct] = {
+                        anime => $1,
+                        name => $2,
+                        role => $3
+                       };
 
-                    if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
-                      $mess->{chars}->[$ct]->{name} = "$2 $1";
-                    }
+                      if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
+                        $mess->{chars}->[$ct]->{name} = "$2 $1";
+                      }
 
-                    $ct++;
-    }
+                      $ct++;
+      }
+    $ct = 0;
+    while ($blah =~ m{
+                        \s+<td.valign.*?class.*?><a.href.*>(.*?)</a>.*?\n
+                        \s*<a.href.*\n
+                        \s+<small>(.*?)</small>
+                        }ixgc) {
+                        $mess->{chars}->[$ct] = {
+                         anime => $1,
+                         name => $2,
+                         role => ''
+                        };
+
+
+                       if ($mess->{chars}->[$ct]->{name} =~ m/^(.*), (.*)$/) {
+                         $mess->{chars}->[$ct]->{name} = "$2 $1";
+                       }
+
+                       $ct++;
+       }
   }
   $mess = [$mess];
 }
@@ -1286,30 +1298,30 @@ $mess = [];
 #---------------- CHARACTERS --------------------#
 elsif ($searchtype eq 'character') {
 $ct = 0;
-if ($mess->{name} eq 'Search Characters') {
+if ($mess->{name} eq 'Characters') {
 $mess = [];
   while ($blah =~ m{
-                    \s*<td.class..borderClass.bgColor.*?\n
-                    \s*<a.href="(/character/(\d+)/.*?)">(.*?)</a>.*?\n
-                    \s*</td>\n
-                    \s*<td.class..borderClass.bgColor.*?\n
-                    (?|\s*Anime..<a.href="/anime.*?">(.*?)</a>.*?\n
-                    (\s*<div>Manga..<a.href="/manga.*?">.*?</a>.*?\n)?|
-                    \s*<div>Manga..<a.href="/manga.*">(.*?)</a>.*?\n?)
-                    \s*</tr>
+                    \s+<td.class..borderClass.bgColor.*?>\n
+                    \s+<a.href..(?:/character/(\d+)/.*?).>(.*?)</a>.*\n
+                    \s+</td>\n
+                    \s+<td.class..borderClass.bgColor.*?
+                    (?|Anime..<a.href../anime.*?">(.*?)</a>.*?\n
+                    (?:<div>Manga..<a.href../manga.*?.>.*?</a>.*?\n)?|
+                    <div>Manga..<a.href../manga.*.>(.*?)</a>.*?\n?)
+                    \s+</tr>
                    }ixgc) {
                     $mess->[$ct] = {
-                     name => $3,
-                     url => "http://myanimelist.net$1",
-                     id => $2,
-                     shows => [$4]
-                    };
-                    $mess->[$ct]->{name} =~ s/\s+/ /g;
+                    name => $2,
+                    url => "http://myanimelist.net/character/$1",
+                    id => $1,
+                    shows => [&cleanup($3)]
+                  };
+                  $mess->[$ct]->{name} =~ s/\s+/ /g;
 
     if ($mess->[$ct]->{name} =~ m/^(.*), (.*)$/) {
        $mess->[$ct]->{name} = "$2 $1";
     }
-     
+
     $ct++;
   }
  } else {
@@ -1317,13 +1329,13 @@ $mess = [];
     $mess->{url} = "http://myanimelist.net$1";
     $mess->{id} = $2;
   }
-  
+
   if ($blah =~ m{
                 \s*<div.class..normal_header..style="height:.15px;">.*?<span.style="font-weight:.normal;"><small>\((.*?)\)</small></span></div>
                }six) {
                  $mess->{jp_name} = $1;
                 }
-				
+
   if ($blah =~ m{
                 \s*<div.class..normal_header..style="height:.15px;">.*?</div>
                 (.*?)
@@ -1331,7 +1343,7 @@ $mess = [];
                }six) {
                  $mess->{info} = cleanup($1);
                 }
-				
+
   my $ind = 0;
   while ($blah =~ m{
                    \s*<table.border.*?>\n
@@ -1398,72 +1410,84 @@ $ct = 0;
 
 #---------------- ANIME --------------------#
 elsif ($searchtype eq 'anime') {
-  if ($blah =~ m{<h1><div.style.*>Ranked.\#(.*)</div>(.*?)</h1>\n}) {
+  if ($blah =~ m{<div><span.*right.>Ranked.(?|\#(.*?)|(N/A))</span><h1.class.*?><span.*?name.>(.*?)</span>}i) {
     $mess->{rank} = $1;
     $mess->{title} = $2;
+    undef $mess->{rank} if lc($mess->{rank} eq 'n/a');
   } else {
     die "Data seems to be malformed";
   }
-  
-  if ($blah =~ m{\s*?<h2>Alternative.Titles</h2>.*<span.class=.dark_text.>Japanese:</span>\s?(.*)</div><br.?/>\n}i) {
+
+  if ($blah =~ m{\s+<span.class..dark_text.>Japanese:</span>\s?(.*)\n}i) {
+                     print "Found JP: $1\n";
                      $mess->{other_titles} = { japanese => [ $1 ] };
   }
-  if ($blah =~ m{\s+<h2>Information</h2>\n
-                 \s+<div><span.class..dark_text.>Type:</span>\s?(.*)</div>\n
-				 \s+.*<span.class..dark_text.>Episodes:</span>\s?(.*)\n
+
+  if ($blah =~ m{<h2>Information</h2>\n
+                 \n
+                 <div>\n
+                 \s+<span.class..dark_text.>Type:</span>\s?(.*)\n
+                 \s+</div>\n
+                 \n
+                 <div.class..spaceit.>\n
+				 \s+<span.class..dark_text.>Episodes:</span>\n
+                 \s+(.*)\n
 				 \s+</div>\n
-				 \s+<div><span.class..dark_text.>Status:</span>\s?(.*)</div>
-				 \n.*
-				 \n.*
-				 \n.*
-				 \n.*Rating:</span>\n
-				 \s+(.*)</div>}ix) {
+                 \n
+                 <div>\n
+				 \s+<span.class..dark_text.>Status:</span>\n
+                 \s+(.*)\n
+                 \s+</div>}ix) {
                    $mess->{type} = $1;
                    $mess->{episodes} = $2;
                    $mess->{status} = $3;
-                   $mess->{classification} = $4;
                    undef $mess->{episodes} if lc($2) eq 'unknown';
                  }
-                 
+
   if ($blah =~ m{.*Genres:</span>\n
                  \s+(.*?)</div>}ix) {
                      my $crap = $1;
-                     $crap =~ s{<a.href=./anime.*?genre.*?>(.*?)</a>}{$1}g;
+                     $crap =~ s{<a.href=.http://myanimelist.net/anime/genre.*?>(.*?)</a>}{$1}g;
                      my @tmp = split(', ',$crap);
                      $mess->{genres} = \@tmp;
                    }
-                   
-  if ($blah =~ m{<h2>Statistics</h2><div><span.class=.dark_text.>Score:</span>\s?(.*)<sup>}) {
+
+  if ($blah =~ m{\s+<span.class..dark_text.>Rating:</span>\n
+                 \s+(.*)\n
+                 \s+</div>}ix) {
+                     $mess->{classification} = $1;
+                 }
+
+  if ($blah =~ m{\s+<span.class=.dark_text.>Score:</span>\n\s+<span(?:.itemprop..ratingValue.)?>(.*?)</span><sup>}) {
     $mess->{members_score} = $1;
   }
-  
-  if ($blah =~ m{<div>.*?<span.class..dark_text.>Producers:</span>\s(.*?)</div>}ix) {
-    my $prods = $1;
-	print $prods,"\n" if $test;
-	my @prods;
-	while ($prods =~ m{<a.href...anime.php.*?>(.*?)</a>}igc) {
-	  push @prods, $1;
-	}
-	
-	$mess->{producers} = \@prods;
-  }
-  
-  if ($blah =~ m{\s+<li><a.href=.http://myanimelist.net/anime/(\d+)/.*/.*?Details</a>}) {
+
+  if ($blah =~ m{\s+<li><a.href=.http://myanimelist.net/anime/(\d+)/.*?Details</a>}) {
     $mess->{id} = $1;
   }
-  
+
   if ($blah =~ m{
                 \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
                 (.*?)
-                 </div>.?</div></div></td>
+                 <h2.style..margin-top..15px..><div.class..floatRightHeader.>
                }six) {
     $mess->{synopsis} = $1;
   }
-  
-  if ($blah =~ m{.*<span.class=.dark_text.>Aired:</span>\s?(.*)</div>\n}) {
+
+  if ($blah =~ m{\s+<span.class..dark_text.>Premiered:</span>\n
+                 \s+<a.href.*>(.*)</a>\n
+                 \s+</div>\n}ix) {
+                    $mess->{season} = $1;
+                }
+
+  if ($blah =~ m{<div.class..spaceit.>\n
+                 \s+<span.class..dark_text.>Aired:</span>\n
+                 \s+(.*)\n
+                 \s+</div>\n
+                 }ix) {
     my %mon = ( Jan => 1, Feb => 2, Mar => 3, Apr => 4, May => 5, Jun => 6,
                 Jul => 7, Aug => 8, Sep => 9, Oct => 10, Nov => 11, Dec => 12 );
-                
+
     my $crap = $1;
     if ($crap =~ /^(...)\s+(\d+),\s(\d{4}) to (...)\s+(\d+),\s(\d{4})/) {
       $mess->{start_date} = "$3-".sprintf('%02d-%02d',$mon{$1},$2);
@@ -1486,28 +1510,28 @@ elsif ($searchtype eq 'anime') {
   $mess->{name} = undef;
   #$mess = [ $mess ];
 }
+
 #---------------- MANGA --------------------#
 elsif ($searchtype eq 'manga') {
-  if ($blah =~ m{<h1><div.style.*>Ranked.\#(.*)</div>(.*?)</h1>\n}) {
+  if ($blah =~ m{<div><span.*right.>Ranked.(?|\#(.*?)|(N/A))</span><h1.class.*?><span.*?name.>(.*?)</span>}) {
     $mess->{rank} = $1;
     $mess->{title} = $2;
     $mess->{title} =~ s/\s+<span.*//;
   } else {
     die "Data seems to be malformed";
   }
-  
+
   if ($blah =~ m{\s*?<h2>Alternative.Titles</h2>.*<span.class=.dark_text.>Japanese:</span>\s?(.*)</div><br.?/>\n}i) {
     $mess->{other_titles} = { japanese => [ $1 ] };
   }
-  if ($blah =~ m{\s*?\n
-                 \s+<h2>Information</h2>\n
-                 .*\n
-                 \s+.*<span.class=.dark_text.>Type:</span>\s?(.*)</div>\n
-                 \s+.*<span.class=.dark_text.>Volumes:</span>\s?(.*)\n
-                 .*\n
-                 \s+.*<span.class=.dark_text.>Chapters:</span>\s?(.*)\n
-                 \s+</div>\n
-                 \s+.*<span.class=.dark_text.>Status:</span>\s?(.*)</div>\n
+  if ($blah =~ m{<h2>Information</h2>\n
+                 \n
+                 <div><span.class..dark_text.>Type:</span>\s?(.*)</div>\n
+                 <div.class..spaceit.><span.class..dark_text.>Volumes:</span>\s?(.*?)\n
+                 </div>\n
+                 <div><span.class..dark_text.>Chapters:</span>\s?(.*)\n
+                 </div>\n
+                 <div.class..spaceit.><span.class..dark_text.>Status:</span>\s?(.*)</div>
                  }ix) {
                    $mess->{type} = $1;
                    $mess->{volumes} = $2;
@@ -1516,7 +1540,7 @@ elsif ($searchtype eq 'manga') {
                    undef $mess->{volumes} if lc($2) eq 'unknown';
                    undef $mess->{chapters} if lc($3) eq 'unknown';
                  }
-                 
+
   if ($blah =~ m{.*Genres:</span>\n
                  \s+(.*?)</div>}ix) {
                      my $crap = $1;
@@ -1524,119 +1548,82 @@ elsif ($searchtype eq 'manga') {
                      my @tmp = split(', ',$crap);
                      $mess->{genres} = \@tmp;
                    }
-                   
-  if ($blah =~ m{<h2>Statistics</h2><div><span.class=.dark_text.>Score:</span>\s?(.*)<sup>}) {
+
+  if ($blah =~ m{<span.class..dark_text.>Score:</span>\s+<span.*>(.*?)</span><sup>}) {
     $mess->{members_score} = $1;
   }
-  
+
   if ($blah =~ m{\s+<li><a.href=./manga/(\d+)/.*?Details</a>}) {
     $mess->{id} = $1;
   }
-  
+
   if ($blah =~ m{
-                \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
-                (.*?)
-                 </div>.?</div></div></td>
+      \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
+      (.*?)
+      <h2.style..margin-top..15px..><div.class..floatRightHeader.>
                }six) {
     $mess->{synopsis} = $1;
   }
-  
+
   $mess->{name} = undef;
   #$mess = [ $mess ];
 }
 #---------------- USERS --------------------#
 elsif (grep { $_ eq $searchtype } ('profile','profile-manga','last-watched','last-read')) {
  # die "This function is a stub. You can help Yayoi by expanding it.";
- if ($blah =~ m{\s+<tr>\n
-                \s+<td.width.*?lightLink.>Time..Days.</span></td>\n
-                \s+<td.width.*?><span.*?Days.>(.*?)</span></td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Watching</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Completed</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>On.Hold</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Dropped</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Plan.to.Watch</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Total.Entries</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
+ if ($blah =~ m{\s+<h5>Anime.Stats</h5>\n
+				\n
+				.*\n
+				.*\n
+				\s+<div.*>Days:\s</span>(?<time_days>[\d.,]+)</div>\n
+				\s+<div.*>Mean.Score:\s</span>(?<mean_score>[\d.,]+)</div>\n
+				\s+</div>\n
+				\n
+				.*\n
+				.*\n
+				\s+<ul.*>
+				<li.*><a.*>Watching</a><span.*>(?<watching>[\d.,]+)</span></li>
+				<li.*><a.*>Completed</a><span.*>(?<completed>[\d.,]+)</span></li>
+				<li.*><a.*>On-Hold</a><span.*>(?<on_hold>[\d.,]+)</span></li>
+				<li.*><a.*>Dropped</a><span.*>(?<dropped>[\d.,]+)</span></li>
+				<li.*><a.*>Plan.to.Watch</a><span.*>(?<plan_to_watch>[\d.,]+)</span></li>
+				</ul>
+				<ul.*>
+				<li.*><span.*>Total.Entries</span><span.*>(?<total_entries>[\d.,]+)</span></li>
+				<li.*><span.*>Rewatched</span><span.*>(?<rewatched>[\d.,]+)</span></li>
+				<li.*><span.*>Episodes</span><span.*>(?<episodes>[\d.,]+)</span></li></ul>\s+</div>\n
+				\s+</div>\n
               }ix) {
-                     $mess->{anime_stats} = {
-                                               time_days     => $1,
-                                               watching      => $2,
-                                               completed     => $3,
-                                               on_hold       => $4,
-                                               dropped       => $5,
-                                               plan_to_watch => $6,
-                                               total_entries => $7
-                                             };
+                     $mess->{anime_stats} = { %+ };
                    } else {
                      die "Data seems malformed";
                    }
-				   
- if ($blah =~ m{\s+<tr>\n
-                \s+<td.width.*?lightLink.>Time..Days.</span></td>\n
-                \s+<td.width.*?><span.*?Days.>(.*?)</span></td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Reading</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Completed</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>On.Hold</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Dropped</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Plan.to.Read</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Total.Entries</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
+
+ if ($blah =~ m{\s+<h5>Manga.Stats</h5>\n
+				\n
+				.*\n
+				.*\n
+				\s+<div.*>Days:\s</span>(?<time_days>[\d.,]+)</div>\n
+				\s+<div.*>Mean.Score:\s</span>(?<mean_score>[\d.,]+)</div>\n
+				\s+</div>\n
+				\n
+				.*\n
+				.*\n
+				\s+<ul.*>
+				<li.*><a.*>Reading</a><span.*>(?<reading>[\d.,]+)</span></li>
+				<li.*><a.*>Completed</a><span.*>(?<completed>[\d.,]+)</span></li>
+				<li.*><a.*>On-Hold</a><span.*>(?<on_hold>[\d.,]+)</span></li>
+				<li.*><a.*>Dropped</a><span.*>(?<dropped>[\d.,]+)</span></li>
+				<li.*><a.*>Plan.to.Read</a><span.*>(?<plan_to_read>[\d.,]+)</span></li>
+				</ul>
+				<ul.*>
+				<li.*><span.*>Total.Entries</span><span.*>(?<total_entries>[\d.,]+)</span></li>
+				<li.*><span.*>Reread</span><span.*>(?<reread>[\d.,]+)</span></li>
+				<li.*><span.*>Chapters</span><span.*>(?<chapters>[\d.,]+)</span></li>
+				<li.*><span.*>Volumes</span><span.*>(?<volumes>[\d.,]+)</span></li></ul>\s+</div>\n
+				\s+</div>\n
               }ix) {
-                     $mess->{manga_stats} = {
-                                               time_days     => $1,
-                                               reading       => $2,
-                                               completed     => $3,
-                                               on_hold       => $4,
-                                               dropped       => $5,
-                                               plan_to_read  => $6,
-                                               total_entries => $7
-                                             };
+                     $mess->{manga_stats} = { %+ };
                    } else {
                      die "Data seems malformed";
                    }
@@ -1785,7 +1772,7 @@ sub find_mal_nick {
   my $irc_nick = shift;
   $irc_nick =~ s/\s//g;
   print "Shizune: searching for $irc_nick in database\n" if $test;
-  
+
   $Shizune->bind_param(1, "$irc_nick");
   $Shizune->execute();
   my $Iwako_no_Tegami = $Shizune->fetch();
@@ -1817,7 +1804,9 @@ sub cleanup {
     $data =~ s/\\(n|r)+/ | /g;
     $data =~ s/(\n|\r)+//g;
     $data =~ s/(<[bh]r\s*?\/?>)+/ | /g;
-    $data =~ s/<(.*?)(\s+)?.*?>(.*?)<\/\g1>/$3/g;
+    $data =~ s/<[bi]>(.*?)<\/[bi]>/$1/g;
+    $data =~ s/<!--.*?-->/$1/g;
+    $data =~ s/<(.*?)(?:\s+)?.*?>(.*?)<\/\g1>/$2/g;
     $data =~ s/\\(\'|\")/$1/g;
     $data =~ s{<a\s.*?>}{}g;
     $data =~ s{</a>}{}g;
@@ -1839,12 +1828,12 @@ sub weight {
    "Movie" => 10000000000,
    "Special" => 1000000000,
    "Music" => 0,
-   
+
    "Currently Airing" => 100000000000000,
    "Finished Airing" => 100000000000000,
    "Not yet aired" => 0,
  );
- 
+
  if ($flag eq 'whodid') { return $animu->{id} + $weight{$animu->{type}} + $weight{$animu->{status}}; }
  else { return $animu->{id} + $weight{$animu->{type}}; }
 }
@@ -1853,7 +1842,7 @@ sub spaceit {
   my $clean = shift;
   $clean =~ s/([a-z])([A-Z])/$1 $2/g;
   $clean =~ s/-(chan|sama|kun|dono|san)$//;
-  $clean =~ s/_|\||`|-/ /g;3
+  $clean =~ s/_|\||`|-/ /g;
   $clean =~ s/_|\||`|-/ /g;
   return $clean;
 }
@@ -1868,13 +1857,13 @@ my $nick = shift;
    print $sock "PRIVMSG $channels[0] :\x01ACTION noms!\x01\r\n";
    print $sock "PRIVMSG $channels[0] :\x01ACTION hungers!\x01\r\n";
    &resetTimeout;
-  } elsif ($command =~ /^!act (.*)$/i) { 
+  } elsif ($command =~ /^!act (.*)$/i) {
     print $sock "PRIVMSG $channels[0] :\x01ACTION $1\x01\r\n";
     &resetTimeout;
    } elsif ($command =~ /^!quit\s?(.*)$/i) {
      $iQuit = 1;
        my $quitreason = $1;
-       if ($quitreason =~ /^bero/i || $quitreason eq "") { 
+       if ($quitreason =~ /^bero/i || $quitreason eq "") {
            print $sock "QUIT :$quitmsg\r\n";
          } else {
              print $sock "QUIT :$quitreason\r\n";
@@ -1928,7 +1917,7 @@ sub sendRaw {
   print $sock "$msg\r\n";
   &resetTimeout;
  }
- 
+
 sub resetTimeout {
   alarm(0);
   alarm($pingTimeout);
@@ -1956,7 +1945,7 @@ bero.pl - Just another MAL info IRC bot
 
 	perl -X bero.pl & # normal usage
 	perl -w bero.pl --test # test usage
-    
+
 =head1 DESCRIPTION
 
 This is a generic IRC bot that provides information from MyAnimeList.net
