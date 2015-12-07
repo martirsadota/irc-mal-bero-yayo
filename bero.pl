@@ -785,6 +785,7 @@ sub Ayesha {
      if (!defined ($data->{anime_stats})) {
        return undef;
      } else {
+     $data->{anime_stats}->{episodes} = ($data->{anime_stats}->{episodes} eq '1') ? "$data->{anime_stats}->{episodes} episode" : "$data->{anime_stats}->{episodes} episodes";
      $data->{anime_stats} = join ('',
         "\x02Anime List Entries\x02 ",
         $data->{anime_stats}->{total_entries}, ' [',
@@ -797,7 +798,9 @@ sub Ayesha {
          ), ']',
         " $sep \x02Time Spent Watching\x02 ",
         $data->{anime_stats}->{time_days},
-        " days"
+        " days (",
+        $data->{anime_stats}->{episodes},
+        ")"
        );
 	  }
 
@@ -853,6 +856,8 @@ sub Ayesha {
      if (!defined ($data->{manga_stats})) {
        return undef;
      } else {
+     $data->{manga_stats}->{chapters} = ($data->{manga_stats}->{chapters} eq '1') ? "$data->{manga_stats}->{chapters} chapter" : "$data->{manga_stats}->{chapters} chapters";
+     $data->{manga_stats}->{volumes} = ($data->{manga_stats}->{volumes} eq '1') ? "$data->{manga_stats}->{volumes} volume" : "$data->{manga_stats}->{volumes} volumes";
      $data->{manga_stats} = join ('',
         "\x02Manga List Entries\x02 ",
         $data->{manga_stats}->{total_entries}, ' [',
@@ -865,7 +870,9 @@ sub Ayesha {
          ), ']',
         " $sep \x02Time Spent Reading\x02 ",
         $data->{manga_stats}->{time_days},
-        " days"
+        " days (",
+        $data->{manga_stats}->{volumes}, ', ',
+        $data->{manga_stats}->{chapters}, ')'
        );
       }
 
@@ -1564,96 +1571,59 @@ elsif ($searchtype eq 'manga') {
 #---------------- USERS --------------------#
 elsif (grep { $_ eq $searchtype } ('profile','profile-manga','last-watched','last-read')) {
  # die "This function is a stub. You can help Yayoi by expanding it.";
- if ($blah =~ m{\s+<tr>\n
-                \s+<td.width.*?lightLink.>Time..Days.</span></td>\n
-                \s+<td.width.*?><span.*?Days.>(.*?)</span></td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Watching</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Completed</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>On.Hold</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Dropped</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Plan.to.Watch</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Total.Entries</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
+ if ($blah =~ m{\s+<h5>Anime.Stats</h5>\n
+				\n
+				.*\n
+				.*\n
+				\s+<div.*>Days:\s</span>(?<time_days>[\d.,]+)</div>\n
+				\s+<div.*>Mean.Score:\s</span>(?<mean_score>[\d.,]+)</div>\n
+				\s+</div>\n
+				\n
+				.*\n
+				.*\n
+				\s+<ul.*>
+				<li.*><a.*>Watching</a><span.*>(?<watching>[\d.,]+)</span></li>
+				<li.*><a.*>Completed</a><span.*>(?<completed>[\d.,]+)</span></li>
+				<li.*><a.*>On-Hold</a><span.*>(?<on_hold>[\d.,]+)</span></li>
+				<li.*><a.*>Dropped</a><span.*>(?<dropped>[\d.,]+)</span></li>
+				<li.*><a.*>Plan.to.Watch</a><span.*>(?<plan_to_watch>[\d.,]+)</span></li>
+				</ul>
+				<ul.*>
+				<li.*><span.*>Total.Entries</span><span.*>(?<total_entries>[\d.,]+)</span></li>
+				<li.*><span.*>Rewatched</span><span.*>(?<rewatched>[\d.,]+)</span></li>
+				<li.*><span.*>Episodes</span><span.*>(?<episodes>[\d.,]+)</span></li></ul>\s+</div>\n
+				\s+</div>\n
               }ix) {
-                     $mess->{anime_stats} = {
-                                               time_days     => $1,
-                                               watching      => $2,
-                                               completed     => $3,
-                                               on_hold       => $4,
-                                               dropped       => $5,
-                                               plan_to_watch => $6,
-                                               total_entries => $7
-                                             };
+                     $mess->{anime_stats} = { %+ };
                    } else {
                      die "Data seems malformed";
                    }
 
- if ($blah =~ m{\s+<tr>\n
-                \s+<td.width.*?lightLink.>Time..Days.</span></td>\n
-                \s+<td.width.*?><span.*?Days.>(.*?)</span></td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Reading</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Completed</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>On.Hold</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Dropped</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Plan.to.Read</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
-                .*\n
-                .*\n
-                .*\n
-                \s+<td.width.*?lightLink.>Total.Entries</span></td>\n
-                \s+<td.align..center.>(\d+)</td>\n
+ if ($blah =~ m{\s+<h5>Manga.Stats</h5>\n
+				\n
+				.*\n
+				.*\n
+				\s+<div.*>Days:\s</span>(?<time_days>[\d.,]+)</div>\n
+				\s+<div.*>Mean.Score:\s</span>(?<mean_score>[\d.,]+)</div>\n
+				\s+</div>\n
+				\n
+				.*\n
+				.*\n
+				\s+<ul.*>
+				<li.*><a.*>Reading</a><span.*>(?<reading>[\d.,]+)</span></li>
+				<li.*><a.*>Completed</a><span.*>(?<completed>[\d.,]+)</span></li>
+				<li.*><a.*>On-Hold</a><span.*>(?<on_hold>[\d.,]+)</span></li>
+				<li.*><a.*>Dropped</a><span.*>(?<dropped>[\d.,]+)</span></li>
+				<li.*><a.*>Plan.to.Read</a><span.*>(?<plan_to_read>[\d.,]+)</span></li>
+				</ul>
+				<ul.*>
+				<li.*><span.*>Total.Entries</span><span.*>(?<total_entries>[\d.,]+)</span></li>
+				<li.*><span.*>Reread</span><span.*>(?<reread>[\d.,]+)</span></li>
+				<li.*><span.*>Chapters</span><span.*>(?<chapters>[\d.,]+)</span></li>
+				<li.*><span.*>Volumes</span><span.*>(?<volumes>[\d.,]+)</span></li></ul>\s+</div>\n
+				\s+</div>\n
               }ix) {
-                     $mess->{manga_stats} = {
-                                               time_days     => $1,
-                                               reading       => $2,
-                                               completed     => $3,
-                                               on_hold       => $4,
-                                               dropped       => $5,
-                                               plan_to_read  => $6,
-                                               total_entries => $7
-                                             };
+                     $mess->{manga_stats} = { %+ };
                    } else {
                      die "Data seems malformed";
                    }
