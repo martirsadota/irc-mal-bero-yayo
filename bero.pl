@@ -83,7 +83,7 @@ require DBD::SQLite;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.21.20";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.5.00";
  # QUIT message
  my $quitmsg = "";
 
