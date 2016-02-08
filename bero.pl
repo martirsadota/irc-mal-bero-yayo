@@ -83,7 +83,7 @@ require DBD::SQLite;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.5.00";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.5.01";
  # QUIT message
  my $quitmsg = "";
 
@@ -1181,7 +1181,7 @@ my $mess;
 my $ct = 0;
 my $stahp = 0;
 
-print $blah,"\n\n" if $test;
+#print $blah,"\n\n" if $test;
 
 #$blah = decode_entities($blah);
 
@@ -1311,12 +1311,12 @@ $mess = [];
                     \s+</tr>
                    }ixgc) {
                     $mess->[$ct] = {
-                    name => $2,
-                    url => "http://myanimelist.net/character/$1",
-                    id => $1,
-                    shows => [&cleanup($3)]
-                  };
-                  $mess->[$ct]->{name} =~ s/\s+/ /g;
+                     name => $2,
+                     url => "http://myanimelist.net/character/$1",
+                     id => $1,
+                     shows => [&cleanup($3)]
+                    };
+                    $mess->[$ct]->{name} =~ s/\s+/ /g;
 
     if ($mess->[$ct]->{name} =~ m/^(.*), (.*)$/) {
        $mess->[$ct]->{name} = "$2 $1";
@@ -1384,27 +1384,6 @@ $mess = [];
   $mess = [ $mess ];
  }
 }
-#---------------- FANSUBBERS --------------------#
-elsif ($searchtype eq 'fansub-groups') {
-$ct = 0;
- if ($mess->{name} =~ /Fansub Group Search/) {
- $mess = [];
-   while ($blah =~ m{
-                    \s*<td.class="borderClass".width="300"><a.href="\?id=(\d+)">(.*?)</td>\n
-                    \s*<td.class="borderClass">(.*)</td>
-                   }ixgc) {
-                     $mess->[$ct] = {
-                       id => int($1),
-                       name => $2,
-                       s_name => $3
-                      };
-                     $ct++;
-                   }
-    $mess = [ sort { length($a->{name}) <=> length($b->{name}) } @{$mess} ];
- } else {
- $mess = [ $mess ];
- }
-}
 
 # *** ------- SCRAPER FALLBACK --------- *** #
 
@@ -1438,7 +1417,7 @@ elsif ($searchtype eq 'anime') {
 				 \s+<span.class..dark_text.>Status:</span>\n
                  \s+(.*)\n
                  \s+</div>}ix) {
-                   $mess->{type} = $1;
+                   $mess->{type} = &cleanup($1);
                    $mess->{episodes} = $2;
                    $mess->{status} = $3;
                    undef $mess->{episodes} if lc($2) eq 'unknown';
@@ -1455,7 +1434,7 @@ elsif ($searchtype eq 'anime') {
   if ($blah =~ m{\s+<span.class..dark_text.>Rating:</span>\n
                  \s+(.*)\n
                  \s+</div>}ix) {
-                     $mess->{classification} = $1;
+                     $mess->{classification} = &cleanup($1);
                  }
 
   if ($blah =~ m{\s+<span.class=.dark_text.>Score:</span>\n\s+<span(?:.itemprop..ratingValue.)?>(.*?)</span><sup>}) {
@@ -1510,7 +1489,6 @@ elsif ($searchtype eq 'anime') {
   $mess->{name} = undef;
   #$mess = [ $mess ];
 }
-
 #---------------- MANGA --------------------#
 elsif ($searchtype eq 'manga') {
   if ($blah =~ m{<div><span.*right.>Ranked.(?|\#(.*?)|(N/A))</span><h1.class.*?><span.*?name.>(.*?)</span>}) {
@@ -1525,7 +1503,6 @@ elsif ($searchtype eq 'manga') {
     $mess->{other_titles} = { japanese => [ $1 ] };
   }
   if ($blah =~ m{<h2>Information</h2>\n
-                 \n
                  <div><span.class..dark_text.>Type:</span>\s?(.*)</div>\n
                  <div.class..spaceit.><span.class..dark_text.>Volumes:</span>\s?(.*?)\n
                  </div>\n
@@ -1533,7 +1510,7 @@ elsif ($searchtype eq 'manga') {
                  </div>\n
                  <div.class..spaceit.><span.class..dark_text.>Status:</span>\s?(.*)</div>
                  }ix) {
-                   $mess->{type} = $1;
+                   $mess->{type} = &cleanup($1);
                    $mess->{volumes} = $2;
                    $mess->{chapters} = $3;
                    $mess->{status} = $4;
@@ -1558,9 +1535,9 @@ elsif ($searchtype eq 'manga') {
   }
 
   if ($blah =~ m{
-      \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
-      (.*?)
-      <h2.style..margin-top..15px..><div.class..floatRightHeader.>
+                 \s*<h2><div.class..floatRightHeader.>.*?</div>Synopsis</h2>
+                 (.*?)
+                 <h2.style..margin-top..15px..><div.class..floatRightHeader.>
                }six) {
     $mess->{synopsis} = $1;
   }
@@ -1665,12 +1642,12 @@ if ($blah =~ m{<title>Browse visual novels</title>}) {
 	if ($blah =~ m{<li.class="tabselected">.*?<a.*?>(v\d+?)</a>}i) {
 		$mess->{id} = $1;
 	}
-	if ($blah =~ m{<td.*?>Title</td>.*?<td>(.*?)</td>
-	               .*?
-	               (?|<td>Original.title</td>.*?<td>(.*?)</td>|<td>Aliases</td>.*?<td>(.*?)</td>)
+	if ($blah =~ m{(?|<td>Original.title</td>.*?<td>(.*?)</td>|<td>Aliases</td>.*?<td>(.*?)</td>)
 	               }six) {
+		                  $mess->{japanese} = $1;
+	}
+	if ($blah =~ m{<td.*?>Title</td>.*?<td>(.*?)</td>}six) {
 		                  $mess->{title} = $1;
-		                  $mess->{japanese} = $2;
 	}
 	if ($blah =~ m{<td>Length</td>.*?<td>(.*?)</td>
 	               .*?
@@ -1775,8 +1752,8 @@ sub find_mal_nick {
 
   $Shizune->bind_param(1, "$irc_nick");
   $Shizune->execute();
-  my $Iwako_no_Tegami = $Shizune->fetch();
-  return $Iwako_no_Tegami->[0];
+  my $Iwanako_no_Tegami = $Shizune->fetch();
+  return $Iwanako_no_Tegami->[0];
 }
 
 sub register_nick {
@@ -1799,7 +1776,9 @@ sub cleanup {
     #utf8::downgrade($data);
     $data = decode_entities($data);
     $data = encode('UTF-8',$data,Encode::FB_PERLQQ);
-    $data =~ s{<input.type.*?Hide.spoiler.>(<br\s?/?>)?(.*?)<!--spoiler--></span>}{$2}si; # Prepare to be spoiled!
+    $data =~ s{<div.class..spoiler.>(.*)</div>}{$1}si; # Prepare to be spoiled!
+    $data =~ s{<span.class..spoiler_content.>(.*)</span>}{$1}si; # Prepare to be spoiled!
+    $data =~ s{<input.type[^>]*?Hide.spoiler[^>]*?>}{}sig; # Prepare to be spoiled!
     $data =~ s{<div.class..border_top..style..padding.*?>.*?pubads.*$}{}si; # Kill all ads!
     $data =~ s/\\(n|r)+/ | /g;
     $data =~ s/(\n|\r)+//g;
