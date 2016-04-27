@@ -83,7 +83,7 @@ require DBD::SQLite;
  # Bot version
  my $botver = "2.5.16";
  # CTCP VERSION reply string
- my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.5.01";
+ my $versionReply = "Berochoro-v3/Perl $botver | MAL Parser 1.6.01";
  # QUIT message
  my $quitmsg = "";
 
@@ -670,8 +670,8 @@ sub Ayesha {
     else  { $data->{air_dates} = "\x02Aired\x02 $data->{start_date} to $data->{end_date}"; }
 
     $data->{episodes} = "?" if (!defined ($data->{episodes}) or $data->{episodes} == 0);
-    $data->{rank} = (defined ($data->{rank})) ? " (Ranked #$data->{rank})" : '';
-    $data->{members_score} = (lc($data->{members_score}) eq 'n/a') ? "?" : "$data->{members_score}/10";
+    $data->{rank} = ((defined ($data->{rank})) and (lc($data->{members_score}) ne 'n/a')) ? " (Ranked #$data->{rank})" : '';
+	$data->{members_score} = (lc($data->{members_score}) eq 'n/a') ? "?" : "$data->{members_score}/10";
     $data->{season} = (defined ($data->{season}) and $data->{season} ne "") ? " ($data->{season})" : "";
 
     # clean up
@@ -696,8 +696,8 @@ sub Ayesha {
     $data = {
       info_line_1 => "$sep [Anime] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Episodes\x02 $data->{episodes} $sep $data->{air_dates}$data->{season} $sep \x02Members' Score\x02 $data->{members_score}$data->{rank} $sep \x02Genres\x02 $data->{genres} $sep \x02Classification\x02 $data->{classification} $sep",
       info_line_2 => "$sep \x02Synopsis\x02 $data->{synopsis} $sep \x02Link\x02 http://myanimelist.net/anime/$data->{id} $sep",
-      result_line => "$sep [" . ($ct + 1) . "/" . $total . "][Anime] \x02$data->{title}\x02 $sep \x02Type\x02 $data->{type} $sep \x02Members' Score\x02 $data->{members_score}/10 $sep \x02Episodes\x02 $data->{episodes} $sep \x02Link\x02 http://myanimelist.net/anime/$data->{id} $sep",
-	  parse_line  => "$mal $sep [Anime] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Episodes\x02 $data->{episodes} $sep \x02Genres\x02 $data->{genres} $sep \x02Members' Score\x02 $data->{members_score}/10$data->{rank} $sep"
+      result_line => "$sep [" . ($ct + 1) . "/" . $total . "][Anime] \x02$data->{title}\x02 $sep \x02Type\x02 $data->{type} $sep \x02Members' Score\x02 $data->{members_score} $sep \x02Episodes\x02 $data->{episodes} $sep \x02Link\x02 http://myanimelist.net/anime/$data->{id} $sep",
+	  parse_line  => "$mal $sep [Anime] \x02$data->{title}\x02$data->{jp_title} $sep \x02Type\x02 $data->{type} $sep \x02Status\x02 $data->{status} $sep \x02Episodes\x02 $data->{episodes} $sep \x02Genres\x02 $data->{genres} $sep \x02Members' Score\x02 $data->{members_score}$data->{rank} $sep"
      };
 
     return $data;
@@ -789,12 +789,12 @@ sub Ayesha {
      $data->{anime_stats} = join ('',
         "\x02Anime List Entries\x02 ",
         $data->{anime_stats}->{total_entries}, ' [',
-        join ('/',
-          $data->{anime_stats}->{watching},
-          $data->{anime_stats}->{completed},
-          $data->{anime_stats}->{plan_to_watch},
-          $data->{anime_stats}->{on_hold},
-          $data->{anime_stats}->{dropped}
+        join ("\x0F/",
+          "\x0303".$data->{anime_stats}->{watching},
+          "\x0302".$data->{anime_stats}->{completed},
+          "\x0301".$data->{anime_stats}->{plan_to_watch},
+          "\x0307".$data->{anime_stats}->{on_hold},
+          "\x0304".$data->{anime_stats}->{dropped}."\x0F"
          ), ']',
         " $sep \x02Time Spent Watching\x02 ",
         $data->{anime_stats}->{time_days},
@@ -861,12 +861,12 @@ sub Ayesha {
      $data->{manga_stats} = join ('',
         "\x02Manga List Entries\x02 ",
         $data->{manga_stats}->{total_entries}, ' [',
-        join ('/',
-          $data->{manga_stats}->{reading},
-          $data->{manga_stats}->{completed},
-          $data->{manga_stats}->{plan_to_read},
-          $data->{manga_stats}->{on_hold},
-          $data->{manga_stats}->{dropped}
+        join ("\x0F/",
+          "\x0303".$data->{manga_stats}->{reading},
+          "\x0302".$data->{manga_stats}->{completed},
+          "\x0301".$data->{manga_stats}->{plan_to_read},
+          "\x0307".$data->{manga_stats}->{on_hold},
+          "\x0304".$data->{manga_stats}->{dropped}."\x0F"
          ), ']',
         " $sep \x02Time Spent Reading\x02 ",
         $data->{manga_stats}->{time_days},
@@ -1389,12 +1389,15 @@ $mess = [];
 
 #---------------- ANIME --------------------#
 elsif ($searchtype eq 'anime') {
-  if ($blah =~ m{<div><span.*right.>Ranked.(?|\#(.*?)|(N/A))</span><h1.class.*?><span.*?name.>(.*?)</span>}i) {
-    $mess->{rank} = $1;
-    $mess->{title} = $2;
-    undef $mess->{rank} if lc($mess->{rank} eq 'n/a');
+  if ($blah =~ m{<h1.class.*?><span.*?name.>(.*?)</span></h1>}i) {
+    $mess->{title} = $1;
   } else {
     die "Data seems to be malformed";
+  }
+
+  if ($blah =~ m{\s+<span.class..dark_text.>Ranked:</span>\n\s+(?|\#(.*?)|(N/A))<sup>}i) {
+                     $mess->{rank} = $1;
+                     undef $mess->{rank} if lc($mess->{rank} eq 'n/a');
   }
 
   if ($blah =~ m{\s+<span.class..dark_text.>Japanese:</span>\s?(.*)\n}i) {
@@ -1426,7 +1429,7 @@ elsif ($searchtype eq 'anime') {
   if ($blah =~ m{.*Genres:</span>\n
                  \s+(.*?)</div>}ix) {
                      my $crap = $1;
-                     $crap =~ s{<a.href=.http://myanimelist.net/anime/genre.*?>(.*?)</a>}{$1}g;
+                     $crap =~ s{<a.href=./anime/genre.*?>(.*?)</a>}{$1}g;
                      my @tmp = split(', ',$crap);
                      $mess->{genres} = \@tmp;
                    }
@@ -1491,10 +1494,8 @@ elsif ($searchtype eq 'anime') {
 }
 #---------------- MANGA --------------------#
 elsif ($searchtype eq 'manga') {
-  if ($blah =~ m{<div><span.*right.>Ranked.(?|\#(.*?)|(N/A))</span><h1.class.*?><span.*?name.>(.*?)</span>}) {
-    $mess->{rank} = $1;
-    $mess->{title} = $2;
-    $mess->{title} =~ s/\s+<span.*//;
+    if ($blah =~ m{<h1.class.*?><span.*?name.>(.*?)</span></h1>}i) {
+      $mess->{title} = $1;
   } else {
     die "Data seems to be malformed";
   }
@@ -1502,6 +1503,12 @@ elsif ($searchtype eq 'manga') {
   if ($blah =~ m{\s*?<h2>Alternative.Titles</h2>.*<span.class=.dark_text.>Japanese:</span>\s?(.*)</div><br.?/>\n}i) {
     $mess->{other_titles} = { japanese => [ $1 ] };
   }
+
+  if ($blah =~ m{\s+<span.class..dark_text.>Ranked:</span>\s+(?|\#(.*?)|(N/A))<sup>}i) {
+                     $mess->{rank} = $1;
+                     undef $mess->{rank} if lc($mess->{rank} eq 'n/a');
+  }
+
   if ($blah =~ m{<h2>Information</h2>\n
                  <div><span.class..dark_text.>Type:</span>\s?(.*)</div>\n
                  <div.class..spaceit.><span.class..dark_text.>Volumes:</span>\s?(.*?)\n
